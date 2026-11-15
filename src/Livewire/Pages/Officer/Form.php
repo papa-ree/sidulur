@@ -2,7 +2,7 @@
 
 namespace Bale\Sidulur\Livewire\Pages\Officer;
 
-use App\Models\User;
+use Bale\Cms\Models\User;
 use Bale\Cms\Services\TenantConnectionService;
 use Bale\Sidulur\Models\Bidang;
 use Bale\Sidulur\Models\Officer;
@@ -56,7 +56,7 @@ class Form extends Component
         abort_unless(auth()->user()->can($this->officerId ? SidulurPermissions::OFFICER_UPDATE : SidulurPermissions::OFFICER_CREATE), 403);
 
         $data = $this->validate([
-            'user_id' => ['required', 'uuid', 'exists:users,uuid'],
+            'user_id' => ['required', 'uuid', 'exists:'.TenantConnectionService::connection().'.users,uuid'],
             'is_pendaftaran' => ['boolean'],
             'is_bidang' => ['boolean'],
             'is_lapangan' => ['boolean'],

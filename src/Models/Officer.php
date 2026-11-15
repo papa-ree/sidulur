@@ -2,7 +2,7 @@
 
 namespace Bale\Sidulur\Models;
 
-use App\Models\User;
+use Bale\Cms\Models\User;
 use Bale\Cms\Traits\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -49,19 +49,14 @@ class Officer extends Model
     }
 
     /**
-     * Pencarian tabel: nama atau email user. User ada di DB landlord, jadi
-     * subquery lintas database tidak dipakai — id user dicari lebih dulu.
+     * Pencarian tabel: nama atau email user tenant (satu database).
      */
     public static function searchForTable(Builder $builder, string $query, array $searchable = []): Builder
     {
         $term = trim($query);
 
-        $userIds = User::query()
-            ->where(fn (Builder $user) => $user
-                ->where('name', 'like', '%'.$term.'%')
-                ->orWhere('email', 'like', '%'.$term.'%'))
-            ->pluck('uuid');
-
-        return $builder->whereIn('user_id', $userIds);
+        return $builder->whereHas('user', fn (Builder $user) => $user
+            ->where('name', 'like', '%'.$term.'%')
+            ->orWhere('email', 'like', '%'.$term.'%'));
     }
 }
