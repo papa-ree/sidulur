@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('sidulur_officers', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+
+            // User hidup di DB landlord; FK lintas database tidak mungkin, dan
+            // tabel users tenant kosong sehingga FK akan menolak setiap insert.
+            $table->uuid('user_id')->unique();
+
+            $table->boolean('is_pendaftaran')->default(false);
+            $table->boolean('is_bidang')->default(false);
+            $table->boolean('is_lapangan')->default(false);
+            $table->boolean('is_active')->default(true);
+
+            $table->timestamps();
+        });
+
+        Schema::create('sidulur_bidang_officer', function (Blueprint $table) {
+            $table->id();
+            $table->foreignUuid('officer_id')->constrained('sidulur_officers')->cascadeOnDelete();
+            $table->foreignUuid('bidang_id')->constrained('sidulur_bidangs')->cascadeOnDelete();
+            $table->unique(['officer_id', 'bidang_id']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('sidulur_bidang_officer');
+        Schema::dropIfExists('sidulur_officers');
+    }
+};

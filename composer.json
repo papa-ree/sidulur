@@ -1,0 +1,43 @@
+{
+    "name": "bale/sidulur",
+    "description": "Pelayanan sosial Sidulur untuk Bale CMS (tenant)",
+    "keywords": ["bale", "laravel", "sidulur"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "bale",
+            "email": "ricky.romdhoni@gmail.com",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^11.0||^12.0||^13.0",
+        "bale/cms": "*",
+        "bale/core": "*",
+        "bale/wara": "*"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.14",
+        "pestphp/pest": "^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bale\\Sidulur\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Bale\\Sidulur\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Bale\\Sidulur\\SidulurServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

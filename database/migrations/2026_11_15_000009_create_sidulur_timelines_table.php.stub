@@ -1,0 +1,39 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('sidulur_timelines', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+
+            $table->foreignUuid('pendaftaran_id')
+                ->constrained('sidulur_pendaftarans')
+                ->cascadeOnDelete();
+
+            $table->foreignUuid('pelayanan_bidang_id')
+                ->nullable()
+                ->constrained('sidulur_pelayanan_bidangs')
+                ->nullOnDelete();
+
+            $table->string('stage', 20);
+            $table->string('from_status', 20)->nullable();
+            $table->string('to_status', 20);
+            $table->text('note')->nullable();
+            $table->uuid('actor_id')->nullable();
+
+            $table->timestamps();
+
+            $table->index(['pendaftaran_id', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('sidulur_timelines');
+    }
+};

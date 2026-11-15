@@ -1,0 +1,54 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('sidulur_pelayanan_bidangs', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+
+            $table->foreignUuid('pendaftaran_id')
+                ->constrained('sidulur_pendaftarans')
+                ->cascadeOnDelete();
+
+            $table->foreignUuid('bidang_id')
+                ->constrained('sidulur_bidangs')
+                ->restrictOnDelete();
+
+            $table->foreignUuid('service_id')
+                ->constrained('sidulur_services')
+                ->restrictOnDelete();
+
+            $table->foreignUuid('officer_id')
+                ->nullable()
+                ->constrained('sidulur_officers')
+                ->nullOnDelete();
+
+            $table->string('status', 20)->default('baru');
+            $table->date('scheduled_at')->nullable();
+            $table->text('scheduled_note')->nullable();
+
+            $table->json('form_snapshot')->nullable();
+            $table->text('form_data')->nullable();
+            $table->json('verlap_snapshot')->nullable();
+            $table->text('verlap_data')->nullable();
+            $table->timestamp('verlap_at')->nullable();
+            $table->uuid('handled_by')->nullable();
+            $table->timestamp('completed_at')->nullable();
+
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['bidang_id', 'status', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('sidulur_pelayanan_bidangs');
+    }
+};

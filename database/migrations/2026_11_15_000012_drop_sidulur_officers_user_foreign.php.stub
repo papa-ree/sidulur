@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Tenant lama: lepaskan FK user_id yang menunjuk tabel users tenant
+     * (kosong) padahal user sebenarnya ada di DB landlord.
+     */
+    public function up(): void
+    {
+        if (! Schema::hasTable('sidulur_officers')) {
+            return;
+        }
+
+        try {
+            Schema::table('sidulur_officers', function (Blueprint $table) {
+                $table->dropForeign(['user_id']);
+            });
+        } catch (Throwable) {
+            // Instalasi baru sudah tanpa FK; SQLite juga tidak mendukung drop foreign.
+        }
+    }
+
+    public function down(): void
+    {
+        //
+    }
+};
