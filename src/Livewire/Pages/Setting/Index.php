@@ -37,6 +37,9 @@ class Index extends Component
     {
         abort_unless(auth()->user()->can(SidulurPermissions::SETTING_UPDATE), 403);
 
+        // x-mask hanya membatasi tampilan; server tetap menyimpan digit saja.
+        $this->whatsapp_center = preg_replace('/\D+/', '', $this->whatsapp_center);
+
         $data = $this->validate([
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'ticket_expiry_days' => ['required', 'integer', 'min:1', 'max:365'],

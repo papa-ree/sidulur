@@ -3,6 +3,7 @@
 namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Bale\Sidulur\Support\BlindIndex;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -11,14 +12,28 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Citizen extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use SoftDeletes;
     use UsesTenantConnection;
 
     protected $table = 'sidulur_citizens';
+
+    /**
+     * NIK, HP, NRS, dan nama tidak dicatat: activity_log tersimpan di landlord
+     * dan dibaca role yang lebih luas, sedangkan nilai aslinya terenkripsi.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['family_card_id', 'is_active'])
+            ->logOnlyDirty()
+            ->useLogName('sidulur');
+    }
 
     protected $fillable = [
         'nama',

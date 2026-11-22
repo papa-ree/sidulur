@@ -1,7 +1,7 @@
 <tr wire:key="bidang-row-{{ $record->getKey() }}" class="hover:bg-gray-50/80 transition-colors duration-150 dark:hover:bg-gray-800/50">
     <td class="w-full max-w-0 px-4 py-3.5 sm:w-auto sm:max-w-none">
         <div class="flex items-center gap-2">
-            <i data-lucide="{{ $record->icon }}" class="size-4 shrink-0 text-gray-500 dark:text-gray-400"></i>
+            {!! \Bale\Sidulur\Support\Lucide::render($record->icon, 'size-4 shrink-0 text-gray-500 dark:text-gray-400') !!}
             <div class="min-w-0">
                 <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ $record->nama }}</div>
                 <div class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $record->deskripsi ?: '-' }}</div>

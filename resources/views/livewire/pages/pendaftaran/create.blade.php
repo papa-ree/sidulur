@@ -41,24 +41,26 @@
                     <form wire:submit="createCitizen" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5">
                         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Warga Baru') }}</h2>
                         <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <x-core::input label="{{ __('Nama lengkap') }}" wire:model="nama" />
-                            <x-core::input label="{{ __('NIK') }}" wire:model="nik" maxlength="16" />
-                            <x-core::input label="{{ __('Nomor HP') }}" wire:model="phone" />
-                            <x-core::input label="{{ __('Nomor KK') }}" wire:model="nomor_kk" maxlength="16" />
-                            <x-core::select-dropdown label="{{ __('Kecamatan') }}" model="district_code" :items="$districts" valueField="value" labelField="label" />
-                            <x-core::select-dropdown label="{{ __('Desa/Kelurahan') }}" model="village_code" :items="$villages" valueField="value" labelField="label" />
+                            <x-core::input label="{{ __('Nama lengkap *') }}" wire:model="nama" />
+                            <x-core::input label="{{ __('NIK *') }}" wire:model="nik" maxlength="16" />
+                            <x-core::input label="{{ __('Nomor HP *') }}" wire:model="phone" />
+                            <x-core::input label="{{ __('Nomor KK *') }}" wire:model="nomor_kk" maxlength="16" />
+                            <x-core::select-dropdown label="{{ __('Kecamatan *') }}" model="district_code" :items="$districts" valueField="value" labelField="label" />
+                            <x-core::select-dropdown label="{{ __('Desa/Kelurahan *') }}" model="village_code" :items="$villages" valueField="value" labelField="label" />
                         </div>
                         <div class="mt-4">
-                            <x-core::textarea label="{{ __('Alamat') }}" wire:model="alamat" rows="2" />
+                            <x-core::textarea label="{{ __('Alamat *') }}" wire:model="alamat" rows="2" />
                         </div>
                         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ __('KTP') }}</label>
-                                <input type="file" wire:model="ktp" accept=".jpg,.jpeg,.png,.pdf" class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                                <x-core::upload-zone wire:model="ktp" accept=".jpg,.jpeg,.png,.pdf" maxSize="4096"
+                                    :label="__('KTP *')" :hint="__('JPG, PNG, PDF · maks 4 MB')" />
+                                <x-core::input-error for="ktp" class="mt-1.5" />
                             </div>
                             <div>
-                                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-200">{{ __('KK') }}</label>
-                                <input type="file" wire:model="kk" accept=".jpg,.jpeg,.png,.pdf" class="block w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                                <x-core::upload-zone wire:model="kk" accept=".jpg,.jpeg,.png,.pdf" maxSize="4096"
+                                    :label="__('KK *')" :hint="__('JPG, PNG, PDF · maks 4 MB')" />
+                                <x-core::input-error for="kk" class="mt-1.5" />
                             </div>
                         </div>
                         @if($errors->any())
@@ -67,7 +69,7 @@
                             </ul>
                         @endif
                         <div class="mt-4">
-                            <x-core::button type="submit" label="{{ __('Simpan & Lanjut') }}" />
+                            <x-core::button type="submit" :label="__('Simpan & Lanjut')" />
                         </div>
                     </form>
                 @endif
@@ -78,7 +80,7 @@
                 <ol class="mt-3 list-decimal space-y-2 ps-4 text-xs text-gray-600 dark:text-gray-300">
                     <li>{{ __('Cari warga dengan NIK/KK/HP.') }}</li>
                     <li>{{ __('Buat data warga bila belum ada; KTP/KK cukup sekali.') }}</li>
-                    <li>{{ __('Pilih layanan, isi keperluan dan persyaratan.') }}</li>
+                    <li>{{ __('Pilih layanan, isi formulir dan persyaratan.') }}</li>
                     <li>{{ __('Selesaikan di meja atau teruskan ke bidang.') }}</li>
                 </ol>
             </div>
@@ -97,12 +99,55 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {{-- Langkah 3 baru dirender setelah server menjawab, jadi skeleton ini
+                 menjadi balasan klik kartu layanan. --}}
+            <div wire:loading wire:target="selectService" class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div class="space-y-4 lg:col-span-2">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                        <div class="flex items-center gap-3">
+                            <div class="size-10 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-700"></div>
+                            <div class="space-y-1.5">
+                                <div class="h-4 w-40 animate-pulse rounded bg-gray-100 dark:bg-gray-700"></div>
+                                <div class="h-3 w-24 animate-pulse rounded bg-gray-100 dark:bg-gray-700"></div>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-3">
+                            @for($i = 0; $i < 4; $i++)
+                                <div class="h-11 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-700"></div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5">
+                        <div class="h-4 w-28 animate-pulse rounded bg-gray-100 dark:bg-gray-700"></div>
+                        <div class="mt-4 space-y-2">
+                            @for($i = 0; $i < 3; $i++)
+                                <div class="h-10 animate-pulse rounded-lg bg-gray-100 dark:bg-gray-700"></div>
+                            @endfor
+                        </div>
+                    </div>
+                </div>
+
+                <p class="sr-only">{{ __('Memuat formulir layanan…') }}</p>
+            </div>
+
+            <div wire:loading.remove wire:target="selectService" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach($services as $item)
                     <button type="button" wire:key="service-card-{{ $item->getKey() }}" wire:click="selectService('{{ $item->getKey() }}')"
-                        class="group rounded-xl border border-gray-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-purple-700">
+                        @class([
+                            'group relative rounded-xl border bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-purple-300 hover:shadow-md dark:bg-gray-800 dark:hover:border-purple-700',
+                            'border-purple-500 ring-2 ring-purple-500/30 dark:border-purple-500' => $serviceId === $item->getKey(),
+                            'border-gray-200 dark:border-gray-700' => $serviceId !== $item->getKey(),
+                        ])>
+                        @if($serviceId === $item->getKey())
+                            <span class="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-purple-600 text-white">
+                                <x-lucide-check class="size-3" />
+                            </span>
+                        @endif
                         <div class="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/30">
-                            <i data-lucide="{{ $item->icon }}" class="size-5"></i>
+                            {!! \Bale\Sidulur\Support\Lucide::render($item->icon, 'size-5') !!}
                         </div>
                         <h3 class="mt-3 text-sm font-semibold text-gray-900 group-hover:text-purple-600 dark:text-white dark:group-hover:text-purple-400">{{ $item->nama }}</h3>
                         <p class="mt-1 line-clamp-2 text-xs text-gray-500 dark:text-gray-400">{{ $item->deskripsi ?: $item->bidang?->nama }}</p>
@@ -127,7 +172,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div class="flex items-center gap-3">
                             <div class="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white">
-                                <i data-lucide="{{ $service->icon }}" class="size-5"></i>
+                                {!! \Bale\Sidulur\Support\Lucide::render($service->icon, 'size-5') !!}
                             </div>
                             <div>
                                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $service->nama }}</h2>
@@ -138,31 +183,27 @@
                     </div>
 
                     <div class="mt-4 space-y-4">
-                        <x-core::textarea label="{{ __('Keperluan') }}" wire:model="keperluan" rows="2" />
                         @include('sidulur::partials.dynamic-fields', ['fields' => $service->form?->schema['fields'] ?? [], 'modelPrefix' => 'formData'])
                     </div>
                 </div>
 
-                @if(count($service->form?->schema['persyaratan'] ?? []))
+                @if($citizen)
+                    @include('sidulur::partials.identity', [
+                        'citizen' => $citizen,
+                        'missing' => $identityMissing,
+                        'checkable' => false,
+                        'refreshable' => true,
+                    ])
+                @endif
+
+                @if(count($requirements))
                     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5">
-                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ __('Persyaratan') }}</h3>
-                        <div class="space-y-2">
-                            @foreach($service->form->schema['persyaratan'] as $index => $syarat)
-                                @php $kode = $syarat['kode'] ?? $syarat['key']; @endphp
-                                <label wire:key="syarat-check-{{ $index }}" class="flex items-start gap-2 rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-700">
-                                    <x-core::checkbox wire:model="requirements.{{ $kode }}" />
-                                    <span>
-                                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ $syarat['nama'] ?? $syarat['label'] }}</span>
-                                        @if(! empty($syarat['sumber']))
-                                            <span class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ __('master') }} {{ $syarat['sumber'] }}</span>
-                                        @endif
-                                        @if(! empty($syarat['keterangan']))
-                                            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $syarat['keterangan'] }}</span>
-                                        @endif
-                                    </span>
-                                </label>
-                            @endforeach
-                        </div>
+                        <h3 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ __('Persyaratan Tambahan') }}</h3>
+                        @include('sidulur::partials.requirements', [
+                            'requirements' => $requirements,
+                            'dataModel' => 'requirementData',
+                            'filesModel' => 'requirementFiles',
+                        ])
                     </div>
                 @endif
             </div>
@@ -179,6 +220,9 @@
                         <x-core::secondary-button type="button" wire:click="$set('step', 2)" label="{{ __('Kembali') }}" />
                     </div>
                     <p class="mt-3 text-[11px] text-gray-400 dark:text-gray-500">{{ __('Nomor tiket dibuat otomatis saat disimpan.') }}</p>
+                    @error('identitas')
+                        <p class="mt-2 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:bg-rose-900/20 dark:text-rose-300">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
         </form>

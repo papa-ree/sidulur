@@ -20,13 +20,17 @@
 
             <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Hasil Verifikasi') }}</h2>
-                <div class="mt-3 space-y-4">
-                    @include('sidulur::partials.dynamic-fields', ['fields' => $pelayanan->form_snapshot['verifikasi'] ?? [], 'modelPrefix' => 'verlapData'])
-                    <x-core::textarea label="{{ __('Catatan') }}" wire:model="note" rows="2" />
-                </div>
-                <div class="mt-4">
-                    <x-core::button type="submit" label="{{ __('Simpan Hasil') }}" />
-                </div>
+                @can('sidulur.verlap.update')
+                    <div class="mt-3 space-y-4">
+                        @include('sidulur::partials.dynamic-fields', ['fields' => $pelayanan->form_snapshot['verifikasi'] ?? [], 'modelPrefix' => 'verlapData'])
+                        <x-core::textarea label="{{ __('Catatan') }}" wire:model="note" rows="2" />
+                    </div>
+                    <div class="mt-4">
+                        <x-core::button type="submit" label="{{ __('Simpan Hasil') }}" />
+                    </div>
+                @else
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ __('Anda hanya memiliki akses baca untuk verifikasi lapangan.') }}</p>
+                @endcan
             </div>
         </form>
 

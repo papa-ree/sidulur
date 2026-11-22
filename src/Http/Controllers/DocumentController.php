@@ -19,8 +19,21 @@ class DocumentController
     {
         TenantConnectionService::ensureActive();
 
-        abort_unless($request->user()?->can(SidulurPermissions::CITIZEN_VIEW), 403);
+        $document = Document::query()->findOrFail($document);
 
-        return $documents->response(Document::query()->findOrFail($document));
+        // Dokumen hasil/surat milik pengajuan: pembaca pelayanan/verlap juga berhak.
+        $permissions = $document->isPublic()
+            ? [
+                SidulurPermissions::CITIZEN_VIEW,
+                SidulurPermissions::PENDAFTARAN_VIEW,
+                SidulurPermissions::PELAYANAN_VIEW,
+                SidulurPermissions::VERLAP_VIEW,
+            ]
+            : [SidulurPermissions::CITIZEN_VIEW];
+
+        $user = $request->user();
+        abort_unless(collect($permissions)->contains(fn (string $permission) => $user?->can($permission)), 403);
+
+        return $documents->response($document);
     }
 }

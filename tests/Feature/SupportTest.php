@@ -52,17 +52,23 @@ describe('FormSchema', function () {
             ->and($schema['verifikasi'])->toBe([]);
     });
 
-    it('menandai persyaratan master yang sudah tersedia', function () {
+    it('menyaring syarat identitas warisan Form Builder', function () {
         $schema = FormSchema::normalize([
             'persyaratan' => [
                 ['kode' => 'ktp', 'nama' => 'KTP', 'sumber' => 'ktp'],
-                ['kode' => 'kk', 'nama' => 'KK', 'sumber' => 'kk'],
-                ['kode' => 'hp', 'nama' => 'HP', 'sumber' => 'hp'],
-                ['kode' => 'lain', 'nama' => 'Surat lain'],
+                ['kode' => 'dokumen_1', 'nama' => 'Surat Keterangan'],
+                ['kode' => 'hp', 'nama' => 'Nomor HP', 'sumber' => 'hp'],
             ],
         ]);
 
-        expect(FormSchema::masterRequirements($schema, true, false, true))
-            ->toBe(['ktp' => true, 'kk' => false, 'hp' => true]);
+        expect($schema['persyaratan'])->toHaveCount(1)
+            ->and($schema['persyaratan'][0]['kode'])->toBe('dokumen_1');
+    });
+
+    it('mendaftar sumber identitas yang belum lengkap', function () {
+        expect(FormSchema::identityMissing(true, true, true))->toBe([])
+            ->and(FormSchema::identityMissing(true, false, true))->toBe(['kk'])
+            ->and(FormSchema::identityMissing(false, false, false))->toBe(['ktp', 'kk', 'hp'])
+            ->and(FormSchema::identityRule())->toBe(['requirements.identitas' => ['accepted']]);
     });
 });

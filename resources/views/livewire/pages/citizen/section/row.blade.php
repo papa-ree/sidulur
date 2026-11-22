@@ -16,7 +16,7 @@
     <td class="w-px whitespace-nowrap px-4 py-3.5">
         <livewire:core.shared-components.item-actions
             :editUrl="route('sidulur.citizen.show', $record->getKey())"
-            :deleteId="$record->getKey()"
+            :deleteId="auth()->user()->can('sidulur.citizen.delete') ? $record->getKey() : null"
             deleteEvent="deleteCitizen"
             modelName="Warga"
             confirmMessage="{{ __('Yakin ingin menghapus data warga?') }}"

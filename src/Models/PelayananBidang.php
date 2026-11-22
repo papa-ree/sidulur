@@ -3,16 +3,19 @@
 namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
 
 class PelayananBidang extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use SoftDeletes;
     use UsesTenantConnection;
 
@@ -53,6 +56,18 @@ class PelayananBidang extends Model
         'completed_at' => 'datetime',
     ];
 
+    /**
+     * Jawaban formulir dan catatan lapangan dapat memuat PII, jadi tidak ikut
+     * dicatat ke activity_log yang berada di landlord.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logExcept(['form_data', 'verlap_data', 'form_snapshot', 'verlap_snapshot', 'scheduled_note'])
+            ->logOnlyDirty()
+            ->useLogName('sidulur');
+    }
+
     public function pendaftaran(): BelongsTo
     {
         return $this->belongsTo(Pendaftaran::class);
@@ -71,6 +86,32 @@ class PelayananBidang extends Model
     public function officer(): BelongsTo
     {
         return $this->belongsTo(Officer::class);
+    }
+
+    /**
+     * Respon bidang baru boleh diisi setelah verlap selesai (bila layanan
+     * membutuhkannya) atau sejak status baru untuk layanan tanpa verlap.
+     */
+    public function bolehRespon(): bool
+    {
+        if ($this->service?->butuh_verifikasi) {
+            return $this->status === self::STATUS_VERLAP_SELESAI;
+        }
+
+        return in_array($this->status, [self::STATUS_BARU, self::STATUS_VERLAP_SELESAI], true);
+    }
+
+    /**
+     * Dokumen hasil diunggah setelah verlap selesai; tetap boleh diganti
+     * setelah pengajuan selesai.
+     */
+    public function bolehUnggahHasil(): bool
+    {
+        $allowed = $this->service?->butuh_verifikasi
+            ? [self::STATUS_VERLAP_SELESAI, self::STATUS_SELESAI]
+            : [self::STATUS_BARU, self::STATUS_SELESAI];
+
+        return in_array($this->status, $allowed, true);
     }
 
     public function timelines(): HasMany

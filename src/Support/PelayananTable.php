@@ -18,6 +18,16 @@ class PelayananTable
         static::scoped($builder)->where('status', PelayananBidang::STATUS_DIJADWALKAN);
     }
 
+    public static function pelayanan(Builder $builder): void
+    {
+        static::scoped($builder)->where('status', '!=', PelayananBidang::STATUS_SELESAI);
+    }
+
+    public static function selesai(Builder $builder): void
+    {
+        static::scoped($builder)->where('status', PelayananBidang::STATUS_SELESAI);
+    }
+
     protected static function scoped(Builder $builder): Builder
     {
         $bidangIds = OfficerScope::bidangIds();

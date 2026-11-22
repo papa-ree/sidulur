@@ -155,7 +155,7 @@ class DemoSeeder
             }
 
             $service = $services[$case['service']];
-            $pendaftaran = $this->flow->register($citizen, $service, $case['keperluan'], $this->formData($service));
+            $pendaftaran = $this->flow->register($citizen, $service, $this->formData($service));
 
             $this->applyStage($case['stage'], $pendaftaran, $service);
 
@@ -377,7 +377,6 @@ class DemoSeeder
             [
                 'person' => 0,
                 'service' => 'pelayanan-informasi-konsultasi-bantuan-sosial',
-                'keperluan' => 'Konsultasi syarat bantuan sosial',
                 'stage' => 'desk',
                 'days_ago' => 24,
                 'suffix' => 'DA02',
@@ -385,7 +384,6 @@ class DemoSeeder
             [
                 'person' => 1,
                 'service' => 'usulan-pembaruan-dtsen',
-                'keperluan' => 'Pembaruan data desil DTSEN',
                 'stage' => 'antrean',
                 'days_ago' => 12,
                 'suffix' => 'DB03',
@@ -393,7 +391,6 @@ class DemoSeeder
             [
                 'person' => 3,
                 'service' => 'fasilitasi-usulan-pkh',
-                'keperluan' => 'Usulan menjadi peserta PKH',
                 'stage' => 'dijadwalkan',
                 'days_ago' => 9,
                 'suffix' => 'DC04',
@@ -401,7 +398,6 @@ class DemoSeeder
             [
                 'person' => 4,
                 'service' => 'bantuan-pangan-non-tunai',
-                'keperluan' => 'Penerima BPNT belum menerima saldo',
                 'stage' => 'verlap_selesai',
                 'days_ago' => 7,
                 'suffix' => 'DD05',
@@ -409,7 +405,6 @@ class DemoSeeder
             [
                 'person' => 6,
                 'service' => 'pbi-jkn',
-                'keperluan' => 'Pendaftaran PBI JKN',
                 'stage' => 'selesai_verlap',
                 'days_ago' => 5,
                 'suffix' => 'DE06',
@@ -417,7 +412,6 @@ class DemoSeeder
             [
                 'person' => 7,
                 'service' => 'rekomendasi-biakesmaskin',
-                'keperluan' => 'Rekomendasi biaya pengobatan',
                 'stage' => 'selesai_bidang',
                 'days_ago' => 3,
                 'suffix' => 'DF07',
@@ -425,7 +419,6 @@ class DemoSeeder
             [
                 'person' => 9,
                 'service' => 'penerbitan-surat-keterangan-kks',
-                'keperluan' => 'KKS rusak',
                 'stage' => 'desk',
                 'days_ago' => 0,
                 'suffix' => 'DG08',
@@ -433,7 +426,6 @@ class DemoSeeder
             [
                 'person' => 11,
                 'service' => 'rekomendasi-baznas',
-                'keperluan' => 'Rekomendasi bantuan BAZNAS',
                 'stage' => 'baru',
                 'days_ago' => 0,
                 'suffix' => 'DH09',

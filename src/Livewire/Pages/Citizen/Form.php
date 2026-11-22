@@ -6,9 +6,11 @@ use Bale\Cms\Services\TenantConnectionService;
 use Bale\Core\Models\Region;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Services\CitizenRegistrar;
+use Bale\Sidulur\Services\DocumentService;
 use Bale\Sidulur\SidulurPermissions;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -19,6 +21,7 @@ class Form extends Component
 {
     use WithFileUploads;
 
+    #[Locked]
     public ?string $citizenId = null;
 
     public string $nama = '';
@@ -40,6 +43,13 @@ class Form extends Component
     public $kk;
 
     /**
+     * Pratinjau dokumen tersimpan (ktp warga dan kk) saat mengubah data.
+     *
+     * @var array{ktp: array{name: string, url: string, is_image: bool}|null, kk: array{name: string, url: string, is_image: bool}|null}
+     */
+    public array $existing = ['ktp' => null, 'kk' => null];
+
+    /**
      * Anggota keluarga baru pada KK yang sama (baris dinamis).
      *
      * @var array<int, array{key: string, nik: string, nama: string, ktp: mixed, kk: mixed}>
@@ -52,6 +62,14 @@ class Form extends Component
 
         $permission = $citizen ? SidulurPermissions::CITIZEN_UPDATE : SidulurPermissions::CITIZEN_CREATE;
         abort_unless(auth()->user()->can($permission), 403);
+
+        // Slot kosong: Alpine menampilkannya tanpa request, jadi "Tambah" terasa instan.
+        $this->anggota = array_map(fn () => $this->blankAnggota(), range(1, 3));
+
+        // Prefill dari panel pemohon Vada; nomornya sudah dinormalisasi `62...`.
+        if (! $citizen && request()->filled('phone')) {
+            $this->phone = (string) request('phone');
+        }
 
         if (! $citizen) {
             return;
@@ -67,6 +85,12 @@ class Form extends Component
         $this->district_code = (string) $record->familyCard?->district_code;
         $this->village_code = (string) $record->familyCard?->village_code;
         $this->alamat = (string) $record->familyCard?->alamat;
+
+        $documents = app(DocumentService::class);
+        $this->existing = [
+            'ktp' => $documents->preview($record->documents->firstWhere('kind', 'ktp')),
+            'kk' => $documents->preview($record->familyCard?->documents->firstWhere('kind', 'kk')),
+        ];
     }
 
     public function updatedDistrictCode(): void
@@ -76,7 +100,15 @@ class Form extends Component
 
     public function addAnggota(): void
     {
-        $this->anggota[] = ['key' => (string) Str::uuid(), 'nik' => '', 'nama' => '', 'ktp' => null, 'kk' => null];
+        $this->anggota[] = $this->blankAnggota();
+    }
+
+    /**
+     * @return array{key: string, nik: string, nama: string, ktp: mixed, kk: mixed}
+     */
+    protected function blankAnggota(): array
+    {
+        return ['key' => (string) Str::uuid(), 'nik' => '', 'nama' => '', 'ktp' => null, 'kk' => null];
     }
 
     public function removeAnggota(int $index): void
@@ -87,7 +119,19 @@ class Form extends Component
 
     public function save(CitizenRegistrar $registrar)
     {
+        $permission = $this->citizenId ? SidulurPermissions::CITIZEN_UPDATE : SidulurPermissions::CITIZEN_CREATE;
+        abort_unless(auth()->user()->can($permission), 403);
+
         TenantConnectionService::ensureActive();
+
+        // x-mask menambahkan spasi; validasi tetap memakai digit murni.
+        $this->nik = preg_replace('/\D+/', '', $this->nik);
+        $this->nomor_kk = preg_replace('/\D+/', '', $this->nomor_kk);
+        $this->phone = preg_replace('/\D+/', '', $this->phone);
+
+        foreach ($this->anggota as $index => $row) {
+            $this->anggota[$index]['nik'] = preg_replace('/\D+/', '', (string) ($row['nik'] ?? ''));
+        }
 
         // Baris yang tidak diisi sama sekali tidak perlu divalidasi.
         $this->anggota = array_values(array_filter($this->anggota, fn (array $row) => filled($row['nik'] ?? null)
@@ -98,13 +142,15 @@ class Form extends Component
         $data = $this->validate([
             'nama' => ['required', 'string', 'max:255'],
             'nik' => ['required', 'digits:16'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
             'nomor_kk' => ['required', 'digits:16'],
             'district_code' => ['required', 'string'],
             'village_code' => ['required', 'string'],
             'alamat' => ['required', 'string', 'max:500'],
-            'ktp' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'kk' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            // Berkas identitas wajib juga untuk warga lama; unggah ulang hanya
+            // diperlukan bila dokumennya belum pernah tersimpan.
+            'ktp' => [$this->existing['ktp'] ? 'nullable' : 'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'kk' => [$this->existing['kk'] ? 'nullable' : 'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
             'anggota' => ['array'],
             'anggota.*.nik' => ['required', 'digits:16', function (string $attribute, $value, \Closure $fail) {
                 if ($value === $this->nik) {

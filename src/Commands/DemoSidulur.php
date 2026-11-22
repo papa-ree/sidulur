@@ -24,13 +24,13 @@ class DemoSidulur extends Command
             $tenants = BaleList::all();
 
             if ($tenants->isEmpty()) {
-                $this->error('No tenants found in bale_lists table.');
+                $this->error('Tidak ada tenant pada tabel bale_lists.');
 
                 return self::FAILURE;
             }
 
             $tenantSlug = $this->choice(
-                'Which tenant database do you want to fill with demo data?',
+                'Database tenant mana yang akan diisi data demo?',
                 $tenants->pluck('slug')->toArray()
             );
         }
@@ -38,11 +38,11 @@ class DemoSidulur extends Command
         try {
             $tenant = BaleList::where('slug', $tenantSlug)->firstOrFail();
 
-            $this->info("Initializing connection for tenant: {$tenant->slug}");
+            $this->info("Menyiapkan koneksi untuk tenant: {$tenant->slug}");
             TenantManager::initializeFromBaleUuid($tenant->id);
 
             if (! TenantManager::getActiveConnection()) {
-                throw new \Exception("Failed to activate connection for tenant {$tenant->slug}");
+                throw new \Exception("Gagal mengaktifkan koneksi untuk tenant {$tenant->slug}");
             }
 
             // Data demo tidak boleh mengirim WhatsApp ke nomor contoh.
@@ -51,7 +51,7 @@ class DemoSidulur extends Command
                 protected function send(Citizen $citizen, string $message): void {}
             });
 
-            $this->info("Seeding demo data (DB: {$tenant->database_name})...");
+            $this->info("Mengisi data demo (DB: {$tenant->database_name})...");
 
             $summary = app(DemoSeeder::class)->run();
 
@@ -69,7 +69,7 @@ class DemoSidulur extends Command
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->error('Demo seeding failed: '.$e->getMessage());
+            $this->error('Pengisian data demo gagal: '.$e->getMessage());
 
             return self::FAILURE;
         }

@@ -18,28 +18,28 @@ class InstallSidulur extends Command
     public function handle(): int
     {
         $option = $this->option('all') ? 0 : $this->choice(
-            'What would you like to install/run?',
+            'Apa yang ingin dijalankan?',
             [
-                0 => 'All (Config, Migrations & Permissions)',
-                1 => 'Publish Config Only',
-                2 => 'Role & Permissions Only',
-                3 => 'Migrations Only',
+                0 => 'Semua (Config, Migrasi & Permission)',
+                1 => 'Publikasikan config saja',
+                2 => 'Role & permission saja',
+                3 => 'Migrasi saja',
             ],
             0
         );
 
-        $all = in_array($option, ['All (Config, Migrations & Permissions)', 0], true);
+        $all = in_array($option, ['Semua (Config, Migrasi & Permission)', 0], true);
 
         try {
-            if ($all || in_array($option, ['Publish Config Only', 1], true)) {
+            if ($all || in_array($option, ['Publikasikan config saja', 1], true)) {
                 $this->call('sidulur:publish-config', ['--force' => true]);
             }
 
-            if ($all || in_array($option, ['Role & Permissions Only', 2], true)) {
+            if ($all || in_array($option, ['Role & permission saja', 2], true)) {
                 $this->seedPermissions();
             }
 
-            if ($all || in_array($option, ['Migrations Only', 3], true)) {
+            if ($all || in_array($option, ['Migrasi saja', 3], true)) {
                 if ($this->call('sidulur:publish-migrations', ['--force' => true]) !== self::SUCCESS) {
                     return self::FAILURE;
                 }
@@ -49,11 +49,11 @@ class InstallSidulur extends Command
                 }
             }
 
-            $this->info('  Installation step(s) completed successfully.');
+            $this->info('  Langkah instalasi selesai.');
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->error('  [ERROR] Installation failed: '.$e->getMessage());
+            $this->error('  [ERROR] Instalasi gagal: '.$e->getMessage());
 
             return self::FAILURE;
         }
@@ -110,6 +110,6 @@ class InstallSidulur extends Command
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $this->info('Permissions seeded.');
+        $this->info('Permission berhasil dibuat.');
     }
 }

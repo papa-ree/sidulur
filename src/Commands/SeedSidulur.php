@@ -26,13 +26,13 @@ class SeedSidulur extends Command
             $tenants = BaleList::all();
 
             if ($tenants->isEmpty()) {
-                $this->error('No tenants found in bale_lists table.');
+                $this->error('Tidak ada tenant pada tabel bale_lists.');
 
                 return self::FAILURE;
             }
 
             $tenantSlug = $this->choice(
-                'Which tenant database do you want to seed?',
+                'Database tenant mana yang akan diisi data awal?',
                 $tenants->pluck('slug')->toArray()
             );
         }
@@ -40,14 +40,14 @@ class SeedSidulur extends Command
         try {
             $tenant = BaleList::where('slug', $tenantSlug)->firstOrFail();
 
-            $this->info("Initializing connection for tenant: {$tenant->slug}");
+            $this->info("Menyiapkan koneksi untuk tenant: {$tenant->slug}");
             TenantManager::initializeFromBaleUuid($tenant->id);
 
             if (! TenantManager::getActiveConnection()) {
-                throw new \Exception("Failed to activate connection for tenant {$tenant->slug}");
+                throw new \Exception("Gagal mengaktifkan koneksi untuk tenant {$tenant->slug}");
             }
 
-            $this->info("Seeding Sidulur data (DB: {$tenant->database_name})...");
+            $this->info("Mengisi data awal Sidulur (DB: {$tenant->database_name})...");
 
             $bidangs = [];
             $count = 0;
@@ -91,11 +91,11 @@ class SeedSidulur extends Command
 
             $settings = $this->seedSettings();
 
-            $this->info("Seeded {$count} layanan and {$settings} pengaturan (data lama tidak ditimpa).");
+            $this->info("{$count} layanan dan {$settings} pengaturan terisi (data lama tidak ditimpa).");
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->error('Seeding failed: '.$e->getMessage());
+            $this->error('Pengisian data gagal: '.$e->getMessage());
 
             return self::FAILURE;
         }
@@ -132,7 +132,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => false,
                 'sla_value' => 1,
                 'sort' => 1,
-                'persyaratan' => $this->requirements(['ktp', 'kk']),
+                'persyaratan' => $this->requirements(),
                 'fields' => [
                     ['key' => 'keperluan', 'label' => 'Keperluan', 'type' => 'textarea', 'required' => true],
                 ],
@@ -146,7 +146,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 2,
-                'persyaratan' => $this->requirements(['ktp', 'kk', 'hp']),
+                'persyaratan' => $this->requirements(),
                 'fields' => [
                     ['key' => 'desil', 'label' => 'Desil', 'type' => 'number', 'required' => true],
                     ['key' => 'catatan', 'label' => 'Data yang perlu diperbarui', 'type' => 'textarea'],
@@ -161,7 +161,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => false,
                 'sla_value' => 1,
                 'sort' => 3,
-                'persyaratan' => $this->requirements(['ktp', 'kk', 'hp']),
+                'persyaratan' => $this->requirements(),
                 'fields' => [
                     ['key' => 'keperluan', 'label' => 'Keperluan surat', 'type' => 'textarea', 'required' => true],
                 ],
@@ -175,7 +175,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 4,
-                'persyaratan' => $this->requirements(['ktp', 'kk', 'hp']),
+                'persyaratan' => $this->requirements(),
                 'fields' => $this->desilField(4),
             ],
             [
@@ -187,7 +187,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 5,
-                'persyaratan' => $this->requirements(['ktp', 'kk', 'hp']),
+                'persyaratan' => $this->requirements(),
                 'fields' => $this->desilField(4),
             ],
             [
@@ -199,7 +199,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 6,
-                'persyaratan' => $this->requirements(['ktp', 'kk', 'hp']),
+                'persyaratan' => $this->requirements(),
                 'fields' => $this->desilField(5),
             ],
             [
@@ -211,10 +211,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 7,
-                'persyaratan' => $this->requirements(
-                    ['ktp', 'kk', 'hp'],
-                    ['Surat Keterangan Tidak Mampu dari Desa/Kelurahan', 'Surat Keterangan Diagnosa dari Dokter']
-                ),
+                'persyaratan' => $this->requirements(['Surat Keterangan Tidak Mampu dari Desa/Kelurahan', 'Surat Keterangan Diagnosa dari Dokter']),
                 'fields' => $this->desilField(5),
             ],
             [
@@ -226,10 +223,7 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => false,
                 'sla_value' => 1,
                 'sort' => 8,
-                'persyaratan' => $this->requirements(
-                    ['ktp', 'kk', 'hp'],
-                    ['Surat Kehilangan dari Kepolisian (bila hilang)']
-                ),
+                'persyaratan' => $this->requirements(['Surat Kehilangan dari Kepolisian (bila hilang)']),
                 'fields' => [
                     [
                         'key' => 'jenis_kks',
@@ -249,15 +243,12 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 9,
-                'persyaratan' => $this->requirements(
-                    ['ktp', 'kk', 'hp'],
-                    [
-                        'Surat Permohonan Rekomendasi dari Pemerintah Desa',
-                        'Surat Keterangan Tidak Mampu dari Desa/Kelurahan',
-                        'Surat Pernyataan dari Masyarakat',
-                        'Surat Diagnosa Sakit dan Rujukan dari Faskes',
-                    ]
-                ),
+                'persyaratan' => $this->requirements([
+                    'Surat Permohonan Rekomendasi dari Pemerintah Desa',
+                    'Surat Keterangan Tidak Mampu dari Desa/Kelurahan',
+                    'Surat Pernyataan dari Masyarakat',
+                    'Surat Diagnosa Sakit dan Rujukan dari Faskes',
+                ]),
                 'fields' => [
                     ['key' => 'keterangan_desil', 'label' => 'Keterangan desil', 'type' => 'text', 'required' => true],
                 ],
@@ -271,15 +262,12 @@ class SeedSidulur extends Command
                 'butuh_verifikasi' => true,
                 'sla_value' => 7,
                 'sort' => 10,
-                'persyaratan' => $this->requirements(
-                    ['ktp', 'kk', 'hp'],
-                    [
-                        'Surat Permohonan Rekomendasi',
-                        'Surat Keterangan Tidak Mampu dari Desa/Kelurahan',
-                        'Foto Rumah',
-                        'Foto Pasien',
-                    ]
-                ),
+                'persyaratan' => $this->requirements([
+                    'Surat Permohonan Rekomendasi',
+                    'Surat Keterangan Tidak Mampu dari Desa/Kelurahan',
+                    'Foto Rumah',
+                    'Foto Pasien',
+                ]),
                 'fields' => [
                     ['key' => 'keterangan_desil', 'label' => 'Keterangan desil', 'type' => 'text', 'required' => true],
                 ],
@@ -288,23 +276,14 @@ class SeedSidulur extends Command
     }
 
     /**
-     * @param  array<int, string>  $master
+     * Syarat tambahan saja: identitas & berkas warga diambil otomatis dari Data Warga.
+     *
      * @param  array<int, string>  $extra
      * @return array<int, array<string, mixed>>
      */
-    protected function requirements(array $master, array $extra = []): array
+    protected function requirements(array $extra = []): array
     {
-        $labels = ['ktp' => 'KTP', 'kk' => 'Kartu Keluarga', 'hp' => 'Nomor HP'];
         $rows = [];
-
-        foreach ($master as $source) {
-            $rows[] = [
-                'kode' => $source,
-                'nama' => $labels[$source],
-                'sumber' => $source,
-                'wajib' => true,
-            ];
-        }
 
         foreach ($extra as $index => $label) {
             $rows[] = [

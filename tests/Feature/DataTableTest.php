@@ -16,7 +16,7 @@ it('mencari pelayanan berdasarkan nomor tiket atau nama warga', function () {
     $service = sidulurService($bidang);
     sidulurForm($service);
     $pendaftaran = app(SubmissionFlow::class)
-        ->register(sidulurCitizen(sidulurFamilyCard()), $service, null, []);
+        ->register(sidulurCitizen(sidulurFamilyCard()), $service, []);
     app(SubmissionFlow::class)->forward($pendaftaran);
 
     $hit = fn (string $term) => PelayananBidang::searchForTable(

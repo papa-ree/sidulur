@@ -1,9 +1,11 @@
 <?php
 
+use Bale\Core\Support\Cdn;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\Document;
 use Bale\Sidulur\Models\FamilyCard;
 use Bale\Sidulur\Services\CitizenRegistrar;
+use Bale\Sidulur\Services\DocumentService;
 use Bale\Sidulur\Support\BlindIndex;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -136,4 +138,46 @@ it('menolak NIK anggota yang sudah terdaftar', function () {
     }
 
     expect(Citizen::query()->count())->toBe(1);
+});
+
+it('mengubah gambar dokumen menjadi WebP dan membiarkan PDF apa adanya', function () {
+    Storage::fake('sidulur');
+
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+    $documents = app(DocumentService::class);
+
+    $image = $documents->upload($citizen, UploadedFile::fake()->image('ktp.jpg', 2400, 1600), 'ktp');
+    $pdf = $documents->upload($citizen, UploadedFile::fake()->create('kartu-keluarga.pdf', 100, 'application/pdf'), 'kk');
+
+    expect($image->mime)->toBe('image/webp')
+        ->and($image->path)->toEndWith('.webp')
+        ->and($image->original_name)->toBe('ktp.webp')
+        ->and($image->size)->toBeGreaterThan(0)
+        ->and(Storage::disk('sidulur')->exists($image->path))->toBeTrue()
+        ->and($pdf->mime)->toBe('application/pdf')
+        ->and($pdf->path)->toEndWith('.pdf')
+        ->and($pdf->original_name)->toBe('kartu-keluarga.pdf');
+});
+
+it('menyiapkan pratinjau dokumen sesuai jenis berkas', function () {
+    Storage::fake('sidulur');
+
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+    $documents = app(DocumentService::class);
+
+    $image = $documents->upload($citizen, UploadedFile::fake()->image('ktp.jpg'), 'ktp');
+    $pdf = $documents->upload($citizen, UploadedFile::fake()->create('kartu-keluarga.pdf', 100, 'application/pdf'), 'kk');
+
+    expect($documents->preview(null))->toBeNull()
+        ->and($documents->preview($image)['is_image'])->toBeTrue()
+        ->and($documents->preview($image)['url'])->toContain($image->getKey())
+        ->and($documents->preview($pdf)['is_image'])->toBeFalse()
+        ->and($documents->preview($pdf)['name'])->toBe('kartu-keluarga.pdf');
+
+    // Production: pratinjau lewat CDN core, bukan route media.
+    $this->app['env'] = 'production';
+    config(['core.cdn.enabled' => true, 'core.cdn.base_url' => 'https://cdn.test', 'core.cdn.prefix' => 'bale']);
+    Cdn::forgetOrganizationSlug();
+
+    expect($documents->preview($image)['url'])->toBe('https://cdn.test/bale/'.$image->path);
 });

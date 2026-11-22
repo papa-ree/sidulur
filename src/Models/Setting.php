@@ -4,12 +4,15 @@ namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Services\TenantManager;
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Setting extends Model
 {
+    use LogsActivity;
     use UsesTenantConnection;
 
     protected $table = 'sidulur_settings';
@@ -21,6 +24,18 @@ class Setting extends Model
     public $incrementing = false;
 
     protected $fillable = ['key', 'value'];
+
+    /**
+     * Hanya nama kunci yang dicatat; `value` dapat berisi hash password
+     * dashboard yang tidak boleh masuk activity_log.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['key'])
+            ->logOnlyDirty()
+            ->useLogName('sidulur');
+    }
 
     public static function get(string $key, mixed $default = null): mixed
     {

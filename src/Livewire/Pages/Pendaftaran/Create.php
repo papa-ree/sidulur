@@ -4,12 +4,12 @@ namespace Bale\Sidulur\Livewire\Pages\Pendaftaran;
 
 use Bale\Cms\Services\TenantConnectionService;
 use Bale\Core\Models\Region;
+use Bale\Sidulur\Livewire\Concerns\RegistersSubmission;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\Service;
 use Bale\Sidulur\Services\CitizenRegistrar;
 use Bale\Sidulur\Services\SubmissionFlow;
 use Bale\Sidulur\SidulurPermissions;
-use Bale\Sidulur\Support\FormSchema;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -19,6 +19,7 @@ use Livewire\WithFileUploads;
 #[Title('Pendaftaran Baru')]
 class Create extends Component
 {
+    use RegistersSubmission;
     use WithFileUploads;
 
     public int $step = 1;
@@ -51,11 +52,11 @@ class Create extends Component
 
     public ?string $serviceId = null;
 
-    public string $keperluan = '';
-
     public array $formData = [];
 
-    public array $requirements = [];
+    public array $requirementData = [];
+
+    public array $requirementFiles = [];
 
     public function mount(): void
     {
@@ -73,6 +74,8 @@ class Create extends Component
 
     public function search(CitizenRegistrar $registrar): void
     {
+        $this->authorizeCreate();
+
         $this->validate(['identity' => ['required', 'string', 'min:3']]);
 
         $found = $registrar->find($this->identity);
@@ -88,6 +91,8 @@ class Create extends Component
 
     public function selectCitizen(string $id): void
     {
+        $this->authorizeCreate();
+
         $this->citizenId = $id;
         $this->step = 2;
         $this->showNewCitizen = false;
@@ -100,16 +105,18 @@ class Create extends Component
 
     public function createCitizen(CitizenRegistrar $registrar): void
     {
+        $this->authorizeCreate();
+
         $data = $this->validate([
             'nama' => ['required', 'string', 'max:255'],
             'nik' => ['required', 'digits:16'],
-            'phone' => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:20'],
             'nomor_kk' => ['required', 'digits:16'],
             'district_code' => ['required', 'string'],
             'village_code' => ['required', 'string'],
             'alamat' => ['required', 'string', 'max:500'],
-            'ktp' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'kk' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'ktp' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'kk' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ]);
 
         $citizen = $registrar->register($data, $this->ktp, $this->kk);
@@ -119,22 +126,37 @@ class Create extends Component
 
     public function selectService(string $id): void
     {
+        $this->authorizeCreate();
+
+        if ($this->serviceId === $id) {
+            $this->step = 3;
+
+            return;
+        }
+
         $service = Service::query()->with('form')->where('is_active', true)->findOrFail($id);
-        $citizen = $this->citizen();
 
         $this->serviceId = $service->getKey();
         $this->formData = [];
-        $this->requirements = FormSchema::masterRequirements(
-            $service->form?->schema ?? [],
-            $citizen->documents()->where('kind', 'ktp')->exists(),
-            $citizen->familyCard->documents()->where('kind', 'kk')->exists(),
-            filled($citizen->phone),
-        );
+        $this->requirementData = [];
+        $this->requirementFiles = [];
+
+        // Livewire menambahkan berkas ke array yang sudah ada; tanpa kunci
+        // kosong, unggahan pertama menjadi satu file (bukan array) dan
+        // validasi `array` gagal.
+        foreach ($this->requirements($service) as $row) {
+            if (($row['type'] ?? 'file') === 'file') {
+                $this->requirementFiles[$row['key']] = [];
+            }
+        }
+
         $this->step = 3;
     }
 
     public function finishDesk(SubmissionFlow $flow)
     {
+        $this->authorizeCreate();
+
         $pendaftaran = $this->register($flow);
 
         $flow->finishAtDesk($pendaftaran);
@@ -144,6 +166,8 @@ class Create extends Component
 
     public function forward(SubmissionFlow $flow)
     {
+        $this->authorizeCreate();
+
         $pendaftaran = $this->register($flow);
 
         $flow->forward($pendaftaran);
@@ -151,35 +175,15 @@ class Create extends Component
         return redirect()->route('sidulur.pendaftaran.show', $pendaftaran->getKey());
     }
 
-    protected function register(SubmissionFlow $flow)
-    {
-        abort_unless($this->citizenId && $this->serviceId, 404);
-
-        $service = Service::query()->with('form')->findOrFail($this->serviceId);
-
-        $this->validate([
-            'keperluan' => ['nullable', 'string', 'max:1000'],
-            'formData' => ['array'],
-        ]);
-
-        return $flow->register(
-            $this->citizen(),
-            $service,
-            $this->keperluan ?: null,
-            $this->formData
-        );
-    }
-
-    protected function citizen(): Citizen
-    {
-        return Citizen::query()->with(['familyCard.documents', 'documents'])->findOrFail($this->citizenId);
-    }
-
     public function render()
     {
+        $service = $this->serviceId ? Service::query()->with('form')->find($this->serviceId) : null;
+
         return view('sidulur::livewire.pages.pendaftaran.create', [
             'citizen' => $this->citizenId ? $this->citizen() : null,
-            'service' => $this->serviceId ? Service::query()->with('form')->find($this->serviceId) : null,
+            'identityMissing' => $this->identityMissing(),
+            'service' => $service,
+            'requirements' => $this->requirements($service),
             'services' => Service::query()->with('bidang')->where('is_active', true)->orderBy('sort')->orderBy('nama')->get(),
             'districts' => Region::districts()->map(fn ($d) => ['value' => $d->district_code, 'label' => $d->district_name])->all(),
             'villages' => $this->district_code

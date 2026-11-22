@@ -11,7 +11,7 @@ class MigrateSidulur extends Command
 {
     protected $signature = 'sidulur:migrate {--tenant= : Slug tenant yang akan dimigrasi}';
 
-    protected $description = 'Run Sidulur migrations for a specific tenant database';
+    protected $description = 'Jalankan migrasi Sidulur untuk database tenant tertentu';
 
     public function handle(): int
     {
@@ -30,13 +30,13 @@ class MigrateSidulur extends Command
             $tenants = BaleList::all();
 
             if ($tenants->isEmpty()) {
-                $this->error('No tenants found in bale_lists table.');
+                $this->error('Tidak ada tenant pada tabel bale_lists.');
 
                 return self::FAILURE;
             }
 
             $tenantSlug = $this->choice(
-                'Which tenant database do you want to migrate?',
+                'Database tenant mana yang akan dimigrasi?',
                 $tenants->pluck('slug')->toArray()
             );
         }
@@ -48,10 +48,10 @@ class MigrateSidulur extends Command
             $connection = TenantManager::getActiveConnection();
 
             if (! $connection) {
-                throw new \Exception("Failed to activate connection for tenant {$tenant->slug}");
+                throw new \Exception("Gagal mengaktifkan koneksi untuk tenant {$tenant->slug}");
             }
 
-            $this->info("Migrating Sidulur tables (DB: {$tenant->database_name})...");
+            $this->info("Menjalankan migrasi tabel Sidulur (DB: {$tenant->database_name})...");
 
             $this->call('migrate', [
                 '--database' => $connection,
@@ -59,11 +59,11 @@ class MigrateSidulur extends Command
                 '--force' => true,
             ]);
 
-            $this->info("Migration for tenant {$tenant->slug} completed.");
+            $this->info("Migrasi untuk tenant {$tenant->slug} selesai.");
 
             return self::SUCCESS;
         } catch (Throwable $e) {
-            $this->error('Migration failed: '.$e->getMessage());
+            $this->error('Migrasi gagal: '.$e->getMessage());
 
             return self::FAILURE;
         }

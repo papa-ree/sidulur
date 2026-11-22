@@ -3,20 +3,35 @@
 namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Bale\Sidulur\Support\BlindIndex;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
 
 class FamilyCard extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use SoftDeletes;
     use UsesTenantConnection;
 
     protected $table = 'sidulur_family_cards';
+
+    /**
+     * Nomor KK dan alamat tidak dicatat (PII); activity_log di landlord tidak
+     * terenkripsi. Perubahan wilayah tetap terlacak.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['district_code', 'district_name', 'village_code', 'village_name'])
+            ->logOnlyDirty()
+            ->useLogName('sidulur');
+    }
 
     protected $fillable = [
         'nomor_kk',

@@ -1,6 +1,7 @@
 <?php
 
 use Bale\Sidulur\SidulurPermissions;
+use Bale\Vada\VadaServiceProvider;
 
 return [
     'type' => 'tenant',
@@ -17,6 +18,16 @@ return [
                     'icon' => 'layout-dashboard',
                     'permission' => SidulurPermissions::VIEW,
                     'table' => 'sidulur_pendaftarans',
+                ],
+                [
+                    'label' => 'Chat',
+                    'url' => 'sidulur/chat',
+                    'icon' => 'messages-square',
+                    // Vada memasok halaman ini; string literal agar menu.php
+                    // Sidulur tidak butuh bale/vada di composer.
+                    'permission' => 'vada.access',
+                    'table' => 'vada_conversations',
+                    'class' => VadaServiceProvider::class,
                 ],
                 [
                     'label' => 'Pendaftaran',
@@ -62,7 +73,7 @@ return [
                 ],
 
                 [
-                    'label' => 'Pelayanan Bidang',
+                    'label' => 'Pengajuan Masuk',
                     'url' => 'sidulur/pelayanan',
                     'icon' => 'briefcase-business',
                     'permission' => SidulurPermissions::PELAYANAN_VIEW,

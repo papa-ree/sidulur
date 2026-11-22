@@ -1,5 +1,6 @@
 @php
     $card = $citizen->familyCard;
+    $documentPreviews = app(\Bale\Sidulur\Services\DocumentService::class);
     $tone = fn (string $status) => match ($status) {
         'selesai' => 'bg-teal-50 text-teal-700 border-teal-100 dark:bg-teal-900/20 dark:text-teal-300 dark:border-teal-800/40',
         default => 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40',
@@ -61,7 +62,11 @@
                     @forelse($citizen->pendaftarans as $item)
                         <li class="flex items-center justify-between gap-3 px-5 py-3">
                             <div>
-                                <a href="{{ route('sidulur.pendaftaran.show', $item->getKey()) }}" wire:navigate class="font-mono text-sm text-purple-600 hover:underline dark:text-purple-400">{{ $item->ticket_number }}</a>
+                                @can('sidulur.pendaftaran.view')
+                                    <a href="{{ route('sidulur.pendaftaran.show', $item->getKey()) }}" wire:navigate class="font-mono text-sm text-purple-600 hover:underline dark:text-purple-400">{{ $item->ticket_number }}</a>
+                                @else
+                                    <span class="font-mono text-sm text-gray-700 dark:text-gray-300">{{ $item->ticket_number }}</span>
+                                @endcan
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ $item->service?->nama }} · {{ $item->created_at?->format('d M Y') }}</p>
                             </div>
                             <span class="rounded-md border px-2 py-0.5 text-xs font-medium {{ $tone($item->status) }}">{{ str($item->status)->title() }}</span>
@@ -77,17 +82,17 @@
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Dokumen') }}</h2>
             <ul class="mt-3 space-y-2 text-sm">
                 @forelse($citizen->documents as $document)
-                    <li class="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-700">
-                        <span class="uppercase text-xs font-semibold text-gray-600 dark:text-gray-300">{{ $document->kind }}</span>
-                        <a href="{{ route('sidulur.media', $document->getKey()) }}" class="text-xs font-medium text-purple-600 hover:underline dark:text-purple-400">{{ __('Unduh') }}</a>
+                    <li>
+                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{{ __('KTP') }}</p>
+                        @include('sidulur::partials.document-preview', ['document' => $documentPreviews->preview($document), 'label' => __('KTP warga')])
                     </li>
                 @empty
                     <li class="text-gray-500 dark:text-gray-400">{{ __('Belum ada dokumen warga.') }}</li>
                 @endforelse
                 @foreach($card?->documents ?? [] as $document)
-                    <li class="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-700">
-                        <span class="uppercase text-xs font-semibold text-gray-600 dark:text-gray-300">KK</span>
-                        <a href="{{ route('sidulur.media', $document->getKey()) }}" class="text-xs font-medium text-purple-600 hover:underline dark:text-purple-400">{{ __('Unduh') }}</a>
+                    <li>
+                        <p class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{{ __('KK') }}</p>
+                        @include('sidulur::partials.document-preview', ['document' => $documentPreviews->preview($document), 'label' => __('Kartu Keluarga')])
                     </li>
                 @endforeach
             </ul>

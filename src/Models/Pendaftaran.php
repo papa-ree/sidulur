@@ -3,6 +3,7 @@
 namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,10 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Pendaftaran extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use SoftDeletes;
     use UsesTenantConnection;
 
@@ -27,7 +30,6 @@ class Pendaftaran extends Model
         'ticket_number',
         'citizen_id',
         'service_id',
-        'keperluan',
         'form_snapshot',
         'form_data',
         'status',
@@ -44,6 +46,18 @@ class Pendaftaran extends Model
         'completed_at' => 'datetime',
         'expires_at' => 'datetime',
     ];
+
+    /**
+     * Data formulir dan keperluan warga dapat memuat PII; cukup perubahan
+     * status/tiket yang dicatat.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logExcept(['form_data', 'form_snapshot', 'keperluan'])
+            ->logOnlyDirty()
+            ->useLogName('sidulur');
+    }
 
     public function citizen(): BelongsTo
     {

@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\File;
 
 class PublishConfigSidulur extends Command
 {
-    protected $signature = 'sidulur:publish-config {--force : Overwrite existing configuration file}';
+    protected $signature = 'sidulur:publish-config {--force : Timpa berkas konfigurasi yang sudah ada}';
 
-    protected $description = 'Publish configuration file for bale/sidulur';
+    protected $description = 'Publikasikan berkas konfigurasi bale/sidulur';
 
     public function handle(): int
     {
@@ -17,19 +17,19 @@ class PublishConfigSidulur extends Command
         $target = config_path('sidulur.php');
 
         if (! File::exists($source)) {
-            $this->error("Config source not found: {$source}");
+            $this->error("Sumber konfigurasi tidak ditemukan: {$source}");
 
             return self::FAILURE;
         }
 
         if (File::exists($target) && ! $this->option('force')) {
-            $this->line('Config file already exists: <comment>config/sidulur.php</comment>. Use <info>--force</info> to overwrite.');
+            $this->line('Berkas konfigurasi sudah ada: <comment>config/sidulur.php</comment>. Gunakan <info>--force</info> untuk menimpa.');
 
             return self::SUCCESS;
         }
 
         File::copy($source, $target);
-        $this->info('Published config file: <info>config/sidulur.php</info>');
+        $this->info('Berkas konfigurasi dipublikasikan: <info>config/sidulur.php</info>');
 
         return self::SUCCESS;
     }

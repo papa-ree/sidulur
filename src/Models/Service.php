@@ -3,16 +3,19 @@
 namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Service extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use SoftDeletes;
     use UsesTenantConnection;
 
@@ -39,6 +42,11 @@ class Service extends Model
         'sla_value' => 'integer',
         'sort' => 'integer',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logAll()->logOnlyDirty()->useLogName('sidulur');
+    }
 
     public function bidang(): BelongsTo
     {

@@ -23,7 +23,9 @@
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Pendaftaran Terbaru') }}</h2>
                     <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ __('Delapan tiket terakhir.') }}</p>
                 </div>
-                <a href="{{ route('sidulur.pendaftaran.index') }}" wire:navigate class="text-xs font-semibold text-purple-600 hover:underline dark:text-purple-400">{{ __('Lihat semua') }}</a>
+                @can('sidulur.pendaftaran.view')
+                    <a href="{{ route('sidulur.pendaftaran.index') }}" wire:navigate class="text-xs font-semibold text-purple-600 hover:underline dark:text-purple-400">{{ __('Lihat semua') }}</a>
+                @endcan
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700">

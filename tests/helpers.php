@@ -83,6 +83,29 @@ function sidulurCitizen(FamilyCard $kk, string $nik = '3502123456780001', ?strin
     ]);
 }
 
+/**
+ * Lengkapi berkas identitas yang kini wajib: KTP warga dan KK keluarga.
+ */
+function sidulurBerkas(Citizen $citizen): void
+{
+    $berkas = ['disk' => 'sidulur', 'mime' => 'application/pdf', 'size' => 100];
+
+    $citizen->documents()->create($berkas + [
+        'kind' => 'ktp',
+        'path' => 'ktp.pdf',
+        'original_name' => 'ktp.pdf',
+    ]);
+
+    $citizen->familyCard->documents()->create($berkas + [
+        'kind' => 'kk',
+        'path' => 'kk.pdf',
+        'original_name' => 'kk.pdf',
+    ]);
+
+    $citizen->unsetRelation('documents');
+    $citizen->familyCard->unsetRelation('documents');
+}
+
 function sidulurService(Bidang $bidang, array $overrides = []): Service
 {
     static $counter = 0;
@@ -102,7 +125,7 @@ function sidulurForm(Service $service, array $schema = []): Form
         'service_id' => $service->getKey(),
         'nama' => 'Form '.$service->nama,
         'schema' => $schema ?: [
-            'persyaratan' => [['kode' => 'ktp', 'nama' => 'KTP', 'sumber' => 'ktp']],
+            'persyaratan' => [],
             'fields' => [['key' => 'catatan', 'label' => 'Catatan', 'type' => 'textarea']],
             'verifikasi' => [['key' => 'kondisi_rumah', 'label' => 'Kondisi rumah']],
         ],

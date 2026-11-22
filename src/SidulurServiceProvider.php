@@ -2,12 +2,17 @@
 
 namespace Bale\Sidulur;
 
+use Bale\Sidulur\Commands\BersihkanSyaratMaster;
 use Bale\Sidulur\Commands\DemoSidulur;
 use Bale\Sidulur\Commands\InstallSidulur;
 use Bale\Sidulur\Commands\MigrateSidulur;
 use Bale\Sidulur\Commands\PublishConfigSidulur;
 use Bale\Sidulur\Commands\PublishMigrationsSidulur;
 use Bale\Sidulur\Commands\SeedSidulur;
+use Bale\Sidulur\Vada\SidulurContactContext;
+use Bale\Vada\Services\ContextRegistry;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Livewire\Component as LivewireComponent;
@@ -23,6 +28,7 @@ class SidulurServiceProvider extends ServiceProvider
         $this->registerDocumentDisk();
 
         $this->commands([
+            BersihkanSyaratMaster::class,
             DemoSidulur::class,
             InstallSidulur::class,
             MigrateSidulur::class,
@@ -59,8 +65,36 @@ class SidulurServiceProvider extends ServiceProvider
         });
 
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'sidulur');
+        $this->registerValidationMessages();
+        $this->registerVadaContext();
         $this->offerPublishing();
         $this->registerLivewireComponents();
+    }
+
+    /**
+     * Vada membaca konteks lewat kontraknya sendiri; kalau Vada tidak terpasang,
+     * Sidulur tetap jalan tanpa panel chat.
+     */
+    protected function registerVadaContext(): void
+    {
+        if (! class_exists(ContextRegistry::class)) {
+            return;
+        }
+
+        $this->app->make(ContextRegistry::class)
+            ->register($this->app->make(SidulurContactContext::class));
+    }
+
+    /**
+     * Aplikasi belum punya lang/id/validation.php, jadi error validasi tampil
+     * sebagai kunci mentah. addLines() hanya menerima kunci datar, karena itu
+     * file bersarang diratakan lebih dulu.
+     */
+    protected function registerValidationMessages(): void
+    {
+        $lines = require __DIR__.'/../resources/lang/id/validation.php';
+
+        Lang::addLines(Arr::dot($lines), 'id');
     }
 
     protected function offerPublishing(): void

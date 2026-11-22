@@ -9,30 +9,39 @@ use Bale\Sidulur\Models\Pendaftaran;
 use Bale\Sidulur\Models\Service;
 use Bale\Sidulur\Models\Timeline;
 use Bale\Sidulur\Support\TicketNumber;
+use Illuminate\Http\UploadedFile;
 
 class SubmissionFlow
 {
-    public function __construct(protected Notifier $notifier) {}
+    public function __construct(protected Notifier $notifier, protected DocumentService $documents) {}
 
     /**
      * @param  array<string, mixed>  $formData
+     * @param  array<string, array<int, UploadedFile>>  $requirementFiles  berkas per kode persyaratan
      */
-    public function register(Citizen $citizen, Service $service, ?string $keperluan, array $formData): Pendaftaran
+    public function register(Citizen $citizen, Service $service, array $formData, array $requirementFiles = []): Pendaftaran
     {
-        return TenantManager::connection()->transaction(function () use ($citizen, $service, $keperluan, $formData) {
+        return TenantManager::connection()->transaction(function () use ($citizen, $service, $formData, $requirementFiles) {
             $schema = $service->form?->schema ?? ['persyaratan' => [], 'fields' => [], 'verifikasi' => []];
 
             $pendaftaran = Pendaftaran::create([
                 'ticket_number' => TicketNumber::generate(),
                 'citizen_id' => $citizen->getKey(),
                 'service_id' => $service->getKey(),
-                'keperluan' => $keperluan,
                 'form_snapshot' => $schema,
                 'form_data' => $formData,
                 'status' => Pendaftaran::STATUS_BARU,
                 'created_by' => auth()->user()?->uuid,
                 'expires_at' => TicketNumber::expiry(),
             ]);
+
+            foreach ($requirementFiles as $kode => $uploads) {
+                foreach ((array) $uploads as $file) {
+                    if ($file instanceof UploadedFile) {
+                        $this->documents->upload($pendaftaran, $file, $kode);
+                    }
+                }
+            }
 
             $this->timeline($pendaftaran, 'pendaftaran', null, Pendaftaran::STATUS_BARU, 'Tiket dibuat.');
 
@@ -160,12 +169,7 @@ class SubmissionFlow
     public function finish(PelayananBidang $pelayanan, array $data, ?string $note = null): void
     {
         TenantManager::connection()->transaction(function () use ($pelayanan, $data, $note) {
-            $allowed = [
-                PelayananBidang::STATUS_BARU,
-                PelayananBidang::STATUS_VERLAP_SELESAI,
-            ];
-
-            if (! in_array($pelayanan->status, $allowed, true)) {
+            if (! $pelayanan->bolehRespon()) {
                 throw new \RuntimeException('Status pengajuan tidak dapat diselesaikan.');
             }
 

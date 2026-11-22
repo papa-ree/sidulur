@@ -7,6 +7,7 @@ use Bale\Sidulur\Models\PelayananBidang;
 use Bale\Sidulur\Services\OfficerScope;
 use Bale\Sidulur\Services\SubmissionFlow;
 use Bale\Sidulur\SidulurPermissions;
+use Bale\Sidulur\Support\FormSchema;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -45,7 +46,14 @@ class Show extends Component
     {
         abort_unless(auth()->user()->can(SidulurPermissions::VERLAP_UPDATE), 403);
 
-        $this->validate(['verlapData' => ['array']]);
+        $this->validate(
+            array_merge(
+                ['verlapData' => ['array']],
+                FormSchema::fieldRules($this->pelayanan->form_snapshot['verifikasi'] ?? [], 'verlapData'),
+            ),
+            [],
+            FormSchema::fieldLabels($this->pelayanan->form_snapshot['verifikasi'] ?? [], 'verlapData')
+        );
 
         $flow->recordVerlap($this->pelayanan, $this->verlapData, $this->note ?: null);
         $this->pelayanan->refresh();

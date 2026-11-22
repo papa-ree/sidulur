@@ -12,6 +12,8 @@
         <div class="text-xs text-gray-500 dark:text-gray-400">{{ $record->scheduled_note }}</div>
     </td>
     <td class="w-px whitespace-nowrap px-4 py-3.5">
-        <a href="{{ route('sidulur.verlap.show', $record->getKey()) }}" wire:navigate class="text-xs font-semibold text-purple-600 hover:underline dark:text-purple-400">{{ __('Isi Hasil') }}</a>
+        <livewire:core.shared-components.item-actions
+            :editUrl="route('sidulur.verlap.show', $record->getKey())"
+            wire:key="verlap-actions-{{ $record->getKey() }}" />
     </td>
 </tr>

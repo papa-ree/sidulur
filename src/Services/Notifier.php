@@ -2,11 +2,10 @@
 
 namespace Bale\Sidulur\Services;
 
+use Bale\Sidulur\Jobs\SendSidulurWhatsapp;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\PelayananBidang;
 use Bale\Sidulur\Models\Pendaftaran;
-use Bale\Wara\Facades\Wara;
-use Throwable;
 
 class Notifier
 {
@@ -44,10 +43,6 @@ class Notifier
             return;
         }
 
-        try {
-            Wara::sendMessage($phone, $message, config('sidulur.whatsapp.purpose', 'sidulur'));
-        } catch (Throwable $e) {
-            report($e);
-        }
+        SendSidulurWhatsapp::dispatch($phone, $message);
     }
 }

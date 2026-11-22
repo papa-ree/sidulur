@@ -4,16 +4,19 @@ namespace Bale\Sidulur\Models;
 
 use Bale\Cms\Models\User;
 use Bale\Cms\Traits\UsesTenantConnection;
+use Bale\Core\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Activitylog\Support\LogOptions;
 
 class Officer extends Model
 {
     use HasUuids;
+    use LogsActivity;
     use UsesTenantConnection;
 
     protected $table = 'sidulur_officers';
@@ -32,6 +35,11 @@ class Officer extends Model
         'is_lapangan' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()->logAll()->logOnlyDirty()->useLogName('sidulur');
+    }
 
     public function user(): BelongsTo
     {

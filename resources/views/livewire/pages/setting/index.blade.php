@@ -16,7 +16,7 @@
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6">
                 <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Kontak') }}</h2>
                 <div class="mt-4">
-                    <x-core::input label="{{ __('Nomor WhatsApp pusat') }}" wire:model="whatsapp_center" placeholder="628xxxxxxxxxx" />
+                    <x-core::input label="{{ __('Nomor WhatsApp pusat') }}" wire:model="whatsapp_center" x-mask="999999999999999" inputmode="numeric" autocomplete="off" placeholder="6281234567890" />
                 </div>
             </div>
 
@@ -33,7 +33,9 @@
 
         <div>
             <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <x-core::button type="submit" label="{{ __('Simpan Pengaturan') }}" />
+                @can('sidulur.setting.update')
+                    <x-core::button type="submit" label="{{ __('Simpan Pengaturan') }}" />
+                @endcan
                 <p class="mt-3 text-[11px] text-gray-400 dark:text-gray-500">{{ __('Kosongkan password bila tidak ingin mengubah.') }}</p>
             </div>
         </div>

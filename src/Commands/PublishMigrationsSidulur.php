@@ -8,7 +8,7 @@ class PublishMigrationsSidulur extends Command
 {
     protected $signature = 'sidulur:publish-migrations {--force : Timpa file migrasi yang sudah dipublikasikan}';
 
-    protected $description = 'Publish migration files for bale/sidulur';
+    protected $description = 'Publikasikan berkas migrasi bale/sidulur';
 
     public function handle(): int
     {
@@ -19,7 +19,7 @@ class PublishMigrationsSidulur extends Command
 
         $count = count(glob(database_path('migrations/sidulur/*.php')) ?: []);
 
-        $this->info("Published {$count} migration file(s) to database/migrations/sidulur.");
+        $this->info("{$count} berkas migrasi dipublikasikan ke database/migrations/sidulur.");
 
         return self::SUCCESS;
     }
