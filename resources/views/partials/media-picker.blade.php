@@ -46,7 +46,7 @@
                 </span>
             </button>
         @empty
-            <p class="col-span-2 py-2 text-center text-[11px] text-gray-400 dark:text-gray-500">{{ __('Belum ada media di percakapan ini.') }}</p>
+            <p class="col-span-2 py-2 text-center text-[11px] text-gray-400 dark:text-gray-500">{{ __('Belum ada media hari ini.') }}</p>
         @endforelse
     </div>
 </div>

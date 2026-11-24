@@ -25,6 +25,24 @@ class Show extends Component
 
     public function render()
     {
-        return view('sidulur::livewire.pages.citizen.show');
+        return view('sidulur::livewire.pages.citizen.show', [
+            'phoneSharing' => $this->phoneSharing(),
+        ]);
+    }
+
+    /**
+     * Warga lain yang memakai nomor HP yang sama (nomor bisa dipakai beberapa warga).
+     */
+    protected function phoneSharing()
+    {
+        if (blank($this->citizen->phone)) {
+            return collect();
+        }
+
+        return Citizen::query()
+            ->where('phone_hash', $this->citizen->phone_hash)
+            ->whereKeyNot($this->citizen->getKey())
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'is_active']);
     }
 }

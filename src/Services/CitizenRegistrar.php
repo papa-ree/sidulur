@@ -7,17 +7,22 @@ use Bale\Core\Models\Region;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\FamilyCard;
 use Bale\Sidulur\Support\BlindIndex;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
 class CitizenRegistrar
 {
+    /** Batas warga yang boleh berbagi satu nomor HP (mis. warga tanpa HP dibantu tetangga). */
+    public const MAX_PER_PHONE = 5;
+
     public function __construct(protected DocumentService $documents) {}
 
-    public function find(string $identity): ?Citizen
+    /** NIK/KK biasanya satu hasil; nomor HP bisa dipakai beberapa warga. */
+    public function search(string $identity): Collection
     {
-        return Citizen::query()->withIdentity($identity)->with('familyCard')->first();
+        return Citizen::query()->withIdentity($identity)->with('familyCard')->orderBy('nama')->get();
     }
 
     /**
@@ -31,7 +36,7 @@ class CitizenRegistrar
         $phoneHash = BlindIndex::make($data['phone'] ?? null);
 
         $this->assertUnique('nik_hash', $nikHash, 'nik', 'NIK sudah terdaftar.', $citizen);
-        $this->assertUnique('phone_hash', $phoneHash, 'phone', 'Nomor HP sudah terdaftar.', $citizen);
+        $this->assertPhoneCapacity($phoneHash, $citizen);
 
         return TenantManager::connection()->transaction(function () use ($data, $ktp, $kk, $citizen, $kkHash, $members) {
             $card = FamilyCard::withTrashed()->where('nomor_kk_hash', $kkHash)->first();
@@ -134,6 +139,25 @@ class CitizenRegistrar
 
         if ($exists) {
             throw ValidationException::withMessages([$field => $message]);
+        }
+    }
+
+    protected function assertPhoneCapacity(?string $hash, ?Citizen $citizen): void
+    {
+        if (! $hash) {
+            return;
+        }
+
+        // shortcut: hitung-lalu-simpan tidak atomik, dua petugas bersamaan bisa melewati batas.
+        $used = Citizen::query()
+            ->where('phone_hash', $hash)
+            ->when($citizen?->exists, fn ($q) => $q->whereKeyNot($citizen->getKey()))
+            ->count();
+
+        if ($used >= self::MAX_PER_PHONE) {
+            throw ValidationException::withMessages([
+                'phone' => __('Nomor HP sudah dipakai :max warga. Gunakan nomor lain.', ['max' => self::MAX_PER_PHONE]),
+            ]);
         }
     }
 }

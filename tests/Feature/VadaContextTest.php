@@ -1,5 +1,6 @@
 <?php
 
+use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\Pendaftaran;
 use Bale\Sidulur\SidulurPermissions;
 use Bale\Sidulur\Vada\SidulurContactContext;
@@ -101,4 +102,45 @@ it('tidak menawarkan tambah layanan tanpa izin pendaftaran', function () {
 it('memasang halaman chat sidulur di atas komponen vada', function () {
     expect(Route::has('sidulur.chat.index'))->toBeTrue()
         ->and(Livewire::exists('vada.shared-components.chat.inbox'))->toBeTrue();
+});
+
+it('meringkas nomor yang dipakai beberapa warga dan menyerahkan pilihan ke panel', function () {
+    $card = sidulurFamilyCard();
+
+    sidulurCitizen($card, '3502123456780001', '081234567890');
+
+    $second = Citizen::query()->create([
+        'nama' => 'Sriyati',
+        'nik' => '3502123456780002',
+        'phone' => '081234567890',
+        'family_card_id' => $card->getKey(),
+    ]);
+
+    $service = sidulurService(sidulurBidang());
+
+    Pendaftaran::query()->create([
+        'ticket_number' => 'SDLR-9001',
+        'citizen_id' => $second->getKey(),
+        'service_id' => $service->getKey(),
+        'status' => Pendaftaran::STATUS_BARU,
+    ]);
+
+    vadaContextUserCanOnly(SidulurPermissions::CITIZEN_VIEW, SidulurPermissions::PENDAFTARAN_CREATE);
+
+    $contexts = (new SidulurContactContext)->forPhone('6281234567890');
+
+    expect($contexts)->toHaveCount(1);
+
+    $context = $contexts[0];
+
+    expect($context->matched())->toBeTrue()
+        ->and($context->name)->toBe('2 warga')
+        ->and($context->caption)->toBe('Nomor dipakai bersama')
+        ->and($context->captionTone)->toBe('amber')
+        ->and($context->fields)->toHaveKey('Nomor HP')
+        ->and($context->history)->toHaveCount(1)
+        ->and($context->history[0]->meta)->toContain('Sriyati')
+        ->and($context->historyUrl)->toBeNull()
+        ->and($context->panelView)->toBe('sidulur::partials.chat.service-panel')
+        ->and($context->panelData['phone'])->toBe('6281234567890');
 });

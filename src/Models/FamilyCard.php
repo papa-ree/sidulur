@@ -71,4 +71,12 @@ class FamilyCard extends Model
     {
         return $this->morphMany(Document::class, 'documentable');
     }
+
+    /** Dokumen KK milik kartu dengan nomor ini, bila sudah pernah diunggah. */
+    public static function kkDocument(string $nomorKk): ?Document
+    {
+        return static::query()
+            ->where('nomor_kk_hash', BlindIndex::make($nomorKk))
+            ->first()?->documents->firstWhere('kind', 'kk');
+    }
 }

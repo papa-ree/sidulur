@@ -1,6 +1,8 @@
 <?php
 
 use Bale\Core\Support\Cdn;
+use Bale\Sidulur\Livewire\Pages\Citizen\Form as CitizenForm;
+use Bale\Sidulur\Livewire\Pages\Pendaftaran\Create as PendaftaranCreate;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\Document;
 use Bale\Sidulur\Models\FamilyCard;
@@ -180,4 +182,113 @@ it('menyiapkan pratinjau dokumen sesuai jenis berkas', function () {
     Cdn::forgetOrganizationSlug();
 
     expect($documents->preview($image)['url'])->toBe('https://cdn.test/bale/'.$image->path);
+});
+
+it('membolehkan beberapa warga berbagi satu nomor HP', function () {
+    $card = sidulurFamilyCard();
+
+    sidulurCitizen($card, '3502123456780001', '081234567890');
+    sidulurCitizen($card, '3502123456780002', '081234567890');
+
+    expect(app(CitizenRegistrar::class)->search('081234567890'))->toHaveCount(2)
+        ->and(Citizen::query()->where('phone_hash', BlindIndex::make('6281234567890'))->count())->toBe(2);
+});
+
+it('menolak warga keenam pada satu nomor HP', function () {
+    $card = sidulurFamilyCard();
+
+    foreach (range(1, 5) as $i) {
+        sidulurCitizen($card, '350212345678000'.$i, '081234567890');
+    }
+
+    $register = fn () => app(CitizenRegistrar::class)->register([
+        'nama' => 'Warga Keenam',
+        'nik' => '3502123456789999',
+        'phone' => '081234567890',
+        'nomor_kk' => '3502123456780001',
+        'district_code' => '3502',
+        'village_code' => '3502010001',
+        'alamat' => 'Jl. Contoh No. 1',
+    ]);
+
+    expect($register)->toThrow(ValidationException::class);
+
+    try {
+        $register();
+    } catch (ValidationException $e) {
+        expect($e->errors())->toHaveKey('phone');
+    }
+
+    expect(Citizen::query()->count())->toBe(5);
+});
+
+it('menolak memindahkan warga ke nomor HP yang sudah penuh', function () {
+    $card = sidulurFamilyCard();
+
+    foreach (range(1, 5) as $i) {
+        sidulurCitizen($card, '350212345678000'.$i, '081234567890');
+    }
+
+    $other = sidulurCitizen(sidulurFamilyCard('3502123456780099'), '3502123456780099', '081200000000');
+
+    expect(fn () => app(CitizenRegistrar::class)->register([
+        'nama' => 'Warga Pindah',
+        'nik' => '3502123456780099',
+        'phone' => '081234567890',
+        'nomor_kk' => '3502123456780001',
+        'district_code' => '3502',
+        'village_code' => '3502010001',
+        'alamat' => 'Jl. Contoh No. 1',
+    ], null, null, $other))->toThrow(ValidationException::class);
+});
+
+it('tidak menghitung warga itu sendiri saat menyimpan nomor yang sama', function () {
+    $card = sidulurFamilyCard();
+    $citizen = null;
+
+    foreach (range(1, 5) as $i) {
+        $record = sidulurCitizen($card, '350212345678000'.$i, '081234567890');
+
+        $citizen ??= $record;
+    }
+
+    app(CitizenRegistrar::class)->register([
+        'nama' => 'Warga Contoh',
+        'nik' => '3502123456780001',
+        'phone' => '081234567890',
+        'nomor_kk' => '3502123456780001',
+        'district_code' => '3502',
+        'village_code' => '3502010001',
+        'alamat' => 'Jl. Contoh No. 1',
+    ], null, null, $citizen);
+
+    expect(Citizen::query()->where('phone_hash', BlindIndex::make('6281234567890'))->count())->toBe(5);
+});
+
+it('menemukan dokumen KK dari nomor KK yang sudah terdaftar', function () {
+    sidulurBerkas(sidulurCitizen(sidulurFamilyCard()));
+
+    expect(FamilyCard::kkDocument('3502123456780001'))->not->toBeNull()
+        ->and(FamilyCard::kkDocument('3502123456780099'))->toBeNull();
+});
+
+it('melepas kewajiban unggah KK bila kartu sudah punya KK', function () {
+    sidulurBerkas(sidulurCitizen(sidulurFamilyCard()));
+
+    $warga = new CitizenForm;
+    $warga->nomor_kk = '3502123456780001';
+    $warga->updatedNomorKk();
+
+    $pendaftaran = new PendaftaranCreate;
+    $pendaftaran->nomor_kk = '3502123456780001';
+    $pendaftaran->updatedNomorKk();
+
+    expect($warga->existing['kk'])->not->toBeNull()
+        ->and($pendaftaran->existingKk)->not->toBeNull();
+
+    // Nomor KK lain tanpa dokumen → unggah KK kembali wajib.
+    $warga->nomor_kk = '3502123456780099';
+    $warga->updatedNomorKk();
+
+    expect($warga->existing['kk'])->toBeNull();
 });

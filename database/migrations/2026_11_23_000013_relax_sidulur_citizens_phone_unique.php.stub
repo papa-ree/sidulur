@@ -1,0 +1,40 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Warga tanpa HP memakai nomor penolong, jadi satu nomor boleh dipakai
+     * beberapa warga. Batas 5 ditegakkan CitizenRegistrar, bukan indeks.
+     */
+    public function up(): void
+    {
+        if (! Schema::hasTable('sidulur_citizens')) {
+            return;
+        }
+
+        try {
+            Schema::table('sidulur_citizens', function (Blueprint $table) {
+                $table->dropUnique(['phone_hash']);
+            });
+        } catch (Throwable) {
+            // Sudah longgar sebelumnya.
+        }
+
+        try {
+            Schema::table('sidulur_citizens', function (Blueprint $table) {
+                $table->index('phone_hash');
+            });
+        } catch (Throwable) {
+            // Indeks biasa sudah ada.
+        }
+    }
+
+    public function down(): void
+    {
+        //
+    }
+};

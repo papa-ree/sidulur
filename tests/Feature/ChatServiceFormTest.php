@@ -1,6 +1,7 @@
 <?php
 
 use Bale\Sidulur\Livewire\SharedComponents\Chat\ServiceForm;
+use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\Pendaftaran;
 use Bale\Vada\Models\VadaConversation;
 use Bale\Vada\Models\VadaMessage;
@@ -174,4 +175,87 @@ it('menolak media dari percakapan lain sebagai berkas persyaratan', function () 
         ->assertHasErrors('requirementFiles.surat');
 
     expect(Pendaftaran::query()->count())->toBe(0);
+})->group('sidulur-chat');
+
+it('langsung memakai warga tunggal tanpa memilih', function () {
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+    VadaConversation::forPhone('081234567890');
+
+    sidulurChatUser();
+
+    Livewire::test(ServiceForm::class, ['phone' => '081234567890'])
+        ->assertSet('citizenId', $citizen->getKey())
+        ->assertDontSee('Pilih warga');
+})->group('sidulur-chat');
+
+it('meminta pilih warga dulu saat nomor dipakai beberapa warga', function () {
+    $card = sidulurFamilyCard();
+
+    sidulurBerkas(sidulurCitizen($card, '3502123456780001', '081234567890'));
+
+    $second = Citizen::query()->create([
+        'nama' => 'Sriyati',
+        'nik' => '3502123456780002',
+        'phone' => '081234567890',
+        'family_card_id' => $card->getKey(),
+    ]);
+    sidulurBerkas($second);
+
+    $service = sidulurService(sidulurBidang());
+    sidulurForm($service, ['persyaratan' => [], 'fields' => [], 'verifikasi' => []]);
+
+    VadaConversation::forPhone('081234567890');
+
+    sidulurChatUser();
+
+    $component = Livewire::test(ServiceForm::class, ['phone' => '081234567890'])
+        ->assertSet('citizenId', null)
+        ->assertSee('Pilih warga')
+        ->call('forward')
+        ->assertHasErrors('citizen');
+
+    expect(Pendaftaran::query()->count())->toBe(0);
+
+    $component->call('selectCitizen', $second->getKey())
+        ->assertSet('citizenId', $second->getKey())
+        ->call('selectService', $service->getKey())
+        ->call('forward')
+        ->assertHasNoErrors();
+
+    expect(Pendaftaran::query()->first()?->citizen_id)->toBe($second->getKey());
+})->group('sidulur-chat');
+
+it('menolak memilih warga yang bukan pemakai nomor percakapan', function () {
+    sidulurCitizen(sidulurFamilyCard(), '3502123456780001', '081234567890');
+
+    $foreign = sidulurCitizen(sidulurFamilyCard('3502123456780099'), '3502123456780099', '081299999999');
+
+    VadaConversation::forPhone('081234567890');
+
+    sidulurChatUser();
+
+    Livewire::test(ServiceForm::class, ['phone' => '081234567890'])
+        ->call('selectCitizen', $foreign->getKey())
+        ->assertStatus(404);
+})->group('sidulur-chat');
+
+it('hanya menawarkan media hari ini tetapi media terpilih tetap tampil', function () {
+    sidulurBerkas(sidulurCitizen(sidulurFamilyCard()));
+
+    $service = sidulurChatService();
+    $conversation = VadaConversation::forPhone('081234567890');
+
+    $today = sidulurChatMedia($conversation, 'hari-ini.pdf');
+    $old = sidulurChatMedia($conversation, 'kemarin.pdf');
+    VadaMessage::query()->whereKey($old->getKey())->update(['created_at' => now()->subDay()]);
+
+    sidulurChatUser();
+
+    $component = Livewire::test(ServiceForm::class, ['phone' => '081234567890'])
+        ->call('selectService', $service->getKey())
+        ->assertSee($today->media_name)
+        ->assertDontSee($old->media_name);
+
+    $component->set('requirementMedia.surat', $old->getKey())
+        ->assertSee($old->media_name);
 })->group('sidulur-chat');

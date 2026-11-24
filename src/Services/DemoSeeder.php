@@ -311,8 +311,9 @@ class DemoSeeder
                 'alamat' => 'Dusun Krajan RT 01 RW 02',
                 'anggota' => [
                     ['nama' => 'Sutrisno', 'nik' => '3502010101700001', 'phone' => '081234500001'],
-                    ['nama' => 'Sriyati', 'nik' => '3502014503750002'],
-                    ['nama' => 'Bagas Prakoso', 'nik' => '3502011209050003'],
+                    // Satu nomor dipakai tiga warga untuk menguji alur pilih-warga di inbox.
+                    ['nama' => 'Sriyati', 'nik' => '3502014503750002', 'phone' => '081234500001'],
+                    ['nama' => 'Bagas Prakoso', 'nik' => '3502011209050003', 'phone' => '081234500001'],
                 ],
             ],
             [

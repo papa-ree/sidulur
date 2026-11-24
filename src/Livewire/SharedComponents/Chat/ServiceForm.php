@@ -13,8 +13,10 @@ use Bale\Vada\Models\VadaConversation;
 use Bale\Vada\Models\VadaMessage;
 use Bale\Vada\Support\Media;
 use Bale\Vada\Support\PhoneIndex;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -58,16 +60,57 @@ class ServiceForm extends Component
     {
         abort_unless(auth()->user()->can(SidulurPermissions::PENDAFTARAN_CREATE), 403);
 
+        // Picker warga menampilkan nama dan NIK, jadi izin Data Warga ikut disyaratkan.
+        abort_unless(auth()->user()->can(SidulurPermissions::CITIZEN_VIEW), 403);
+
         $this->phone = $phone;
 
-        $citizen = Citizen::query()->where('phone_hash', BlindIndex::make($phone))->first();
+        $citizens = $this->citizens();
 
-        abort_if($citizen === null, 404);
+        abort_if($citizens->isEmpty(), 404);
 
-        $this->citizenId = $citizen->getKey();
+        // Nomor bersama: petugas memilih warga dulu sebelum memilih layanan.
+        $this->citizenId = $citizens->count() === 1 ? $citizens->first()->getKey() : null;
+
         $this->conversationId = VadaConversation::query()
             ->where('contact_phone_hash', PhoneIndex::make($phone))
             ->value('id');
+    }
+
+    public function selectCitizen(string $id): void
+    {
+        $this->authorizeCreate();
+
+        abort_unless($this->citizens()->contains('id', $id), 404);
+
+        $this->citizenId = $id;
+        $this->changeService();
+    }
+
+    public function changeCitizen(): void
+    {
+        $this->authorizeCreate();
+
+        $this->citizenId = null;
+        $this->changeService();
+    }
+
+    /**
+     * @return Collection<int, Citizen>
+     */
+    protected function citizens()
+    {
+        return Citizen::query()
+            ->where('phone_hash', BlindIndex::make($this->phone))
+            ->orderBy('nama')
+            ->get(['id', 'nama', 'nik', 'is_active']);
+    }
+
+    protected function assertCitizenChosen(): void
+    {
+        if ($this->citizenId === null) {
+            throw ValidationException::withMessages(['citizen' => __('Pilih warga terlebih dahulu.')]);
+        }
     }
 
     public function selectService(string $id): void
@@ -111,6 +154,7 @@ class ServiceForm extends Component
     public function finishDesk(SubmissionFlow $flow): void
     {
         $this->authorizeCreate();
+        $this->assertCitizenChosen();
 
         $pendaftaran = $this->register($flow, $this->mediaFiles());
 
@@ -122,6 +166,7 @@ class ServiceForm extends Component
     public function forward(SubmissionFlow $flow): void
     {
         $this->authorizeCreate();
+        $this->assertCitizenChosen();
 
         $pendaftaran = $this->register($flow, $this->mediaFiles());
 
@@ -220,6 +265,20 @@ class ServiceForm extends Component
             ? Service::query()->with('form')->find($this->serviceId)
             : null;
 
+        $citizens = $this->citizens();
+
+        // Hanya media hari ini yang ditawarkan; media hari lain yang sudah
+        // terpilih tetap ikut agar tombol Batal tidak hilang.
+        $mediaMessages = $service
+            ? $this->mediaQuery()->whereDate('created_at', today())->orderByDesc('created_at')->limit(9)->get()
+            : collect();
+
+        if ($service && $this->requirementMedia !== []) {
+            $mediaMessages = $mediaMessages
+                ->merge($this->mediaQuery()->whereKey(array_values($this->requirementMedia))->get())
+                ->unique('id');
+        }
+
         return view('sidulur::livewire.shared-components.chat.service-form', [
             'services' => $service
                 ? collect()
@@ -232,7 +291,9 @@ class ServiceForm extends Component
             'service' => $service,
             'requirements' => $service ? $this->requirements($service) : [],
             'identityMissing' => $service ? $this->identityMissing() : [],
-            'mediaMessages' => $service ? $this->mediaQuery()->orderByDesc('created_at')->limit(9)->get() : collect(),
+            'mediaMessages' => $mediaMessages,
+            'citizens' => $citizens->count() > 1 ? $citizens : collect(),
+            'citizen' => $this->citizenId ? $citizens->firstWhere('id', $this->citizenId) : null,
         ]);
     }
 }

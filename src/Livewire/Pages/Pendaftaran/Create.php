@@ -6,8 +6,10 @@ use Bale\Cms\Services\TenantConnectionService;
 use Bale\Core\Models\Region;
 use Bale\Sidulur\Livewire\Concerns\RegistersSubmission;
 use Bale\Sidulur\Models\Citizen;
+use Bale\Sidulur\Models\FamilyCard;
 use Bale\Sidulur\Models\Service;
 use Bale\Sidulur\Services\CitizenRegistrar;
+use Bale\Sidulur\Services\DocumentService;
 use Bale\Sidulur\Services\SubmissionFlow;
 use Bale\Sidulur\SidulurPermissions;
 use Livewire\Attributes\Layout;
@@ -50,6 +52,9 @@ class Create extends Component
 
     public $kk;
 
+    /** Pratinjau KK kartu yang sudah ada untuk nomor KK yang diketik. */
+    public ?array $existingKk = null;
+
     public ?string $serviceId = null;
 
     public array $formData = [];
@@ -78,13 +83,17 @@ class Create extends Component
 
         $this->validate(['identity' => ['required', 'string', 'min:3']]);
 
-        $found = $registrar->find($this->identity);
+        $found = $registrar->search($this->identity);
 
         $this->results = $found
-            ? [['id' => $found->getKey(), 'nama' => $found->nama, 'nik' => $found->maskedNik()]]
-            : [];
+            ->map(fn (Citizen $citizen) => [
+                'id' => $citizen->getKey(),
+                'nama' => $citizen->nama,
+                'nik' => $citizen->maskedNik(),
+            ])
+            ->all();
 
-        if (! $found) {
+        if ($found->isEmpty()) {
             $this->showNewCitizen = true;
         }
     }
@@ -103,6 +112,13 @@ class Create extends Component
         $this->village_code = '';
     }
 
+    /** KK tersimpan pada kartu nomor ini → unggah ulang tidak wajib. */
+    public function updatedNomorKk(): void
+    {
+        $this->existingKk = app(DocumentService::class)
+            ->preview(FamilyCard::kkDocument($this->nomor_kk));
+    }
+
     public function createCitizen(CitizenRegistrar $registrar): void
     {
         $this->authorizeCreate();
@@ -116,7 +132,7 @@ class Create extends Component
             'village_code' => ['required', 'string'],
             'alamat' => ['required', 'string', 'max:500'],
             'ktp' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'kk' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'kk' => [$this->existingKk ? 'nullable' : 'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ]);
 
         $citizen = $registrar->register($data, $this->ktp, $this->kk);

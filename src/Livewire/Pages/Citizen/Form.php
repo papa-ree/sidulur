@@ -5,6 +5,7 @@ namespace Bale\Sidulur\Livewire\Pages\Citizen;
 use Bale\Cms\Services\TenantConnectionService;
 use Bale\Core\Models\Region;
 use Bale\Sidulur\Models\Citizen;
+use Bale\Sidulur\Models\FamilyCard;
 use Bale\Sidulur\Services\CitizenRegistrar;
 use Bale\Sidulur\Services\DocumentService;
 use Bale\Sidulur\SidulurPermissions;
@@ -96,6 +97,13 @@ class Form extends Component
     public function updatedDistrictCode(): void
     {
         $this->village_code = '';
+    }
+
+    /** KK tersimpan pada kartu nomor ini → unggah ulang tidak wajib. */
+    public function updatedNomorKk(): void
+    {
+        $this->existing['kk'] = app(DocumentService::class)
+            ->preview(FamilyCard::kkDocument($this->nomor_kk));
     }
 
     public function addAnggota(): void

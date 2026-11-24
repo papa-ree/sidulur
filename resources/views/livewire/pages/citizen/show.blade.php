@@ -28,7 +28,17 @@
                 <dl class="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
                     <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Nama') }}</dt><dd class="font-medium text-gray-900 dark:text-white">{{ $citizen->nama }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">{{ __('NIK') }}</dt><dd class="font-mono text-gray-900 dark:text-white">{{ $citizen->nik }}</dd></div>
-                    <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Nomor HP') }}</dt><dd class="text-gray-900 dark:text-white">{{ $citizen->phone ?: '—' }}</dd></div>
+                    <div>
+                        <dt class="text-gray-500 dark:text-gray-400">{{ __('Nomor HP') }}</dt>
+                        <dd class="text-gray-900 dark:text-white">{{ $citizen->phone ?: '—' }}</dd>
+
+                        @if($phoneSharing->isNotEmpty())
+                            <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                                {{ __('Dipakai bersama :count warga lain:', ['count' => $phoneSharing->count()]) }}
+                                {{ $phoneSharing->pluck('nama')->implode(', ') }}
+                            </p>
+                        @endif
+                    </div>
                     <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Status') }}</dt><dd class="text-gray-900 dark:text-white">{{ $citizen->is_active ? __('Aktif') : __('Nonaktif') }}</dd></div>
                     <div class="sm:col-span-2"><dt class="text-gray-500 dark:text-gray-400">{{ __('Alamat') }}</dt><dd class="text-gray-900 dark:text-white">{{ $card?->alamat }}, {{ $card?->village_name }}, {{ $card?->district_name }}</dd></div>
                     <div><dt class="text-gray-500 dark:text-gray-400">{{ __('Nomor KK') }}</dt><dd class="font-mono text-gray-900 dark:text-white">{{ $card?->nomor_kk }}</dd></div>

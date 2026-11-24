@@ -59,8 +59,9 @@
                             </div>
                             <div>
                                 <x-core::upload-zone wire:model="kk" accept=".jpg,.jpeg,.png,.pdf" maxSize="4096"
-                                    :label="__('KK *')" :hint="__('JPG, PNG, PDF · maks 4 MB')" />
+                                    :label="$existingKk ? __('KK') : __('KK *')" :hint="__('JPG, PNG, PDF · maks 4 MB')" />
                                 <x-core::input-error for="kk" class="mt-1.5" />
+                                @include('sidulur::partials.document-preview', ['document' => $existingKk, 'label' => __('Kartu Keluarga tersimpan')])
                             </div>
                         </div>
                         @if($errors->any())

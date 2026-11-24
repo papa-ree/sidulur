@@ -10,6 +10,7 @@ use Bale\Sidulur\Support\BlindIndex;
 use Bale\Vada\Contracts\ContactContextProvider;
 use Bale\Vada\Support\ContactContext;
 use Bale\Vada\Support\ContactHistoryItem;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -47,16 +48,21 @@ class SidulurContactContext implements ContactContextProvider
             )];
         }
 
-        $citizen = Citizen::query()
+        $citizens = Citizen::query()
             ->with('familyCard')
             ->where('phone_hash', BlindIndex::make($phone))
-            ->first();
+            ->orderBy('nama')
+            ->get();
 
-        if ($citizen === null) {
+        if ($citizens->isEmpty()) {
             return [$this->unregistered($phone, $user)];
         }
 
-        return [$this->profile($citizen, $user, $phone)];
+        if ($citizens->count() === 1) {
+            return [$this->profile($citizens->first(), $user, $phone)];
+        }
+
+        return [$this->shared($citizens, $user, $phone)];
     }
 
     protected function profile(Citizen $citizen, $user, string $phone): ContactContext
@@ -94,6 +100,41 @@ class SidulurContactContext implements ContactContextProvider
                 : null,
             panelData: ['phone' => $phone],
             historyUrl: route('sidulur.citizen.show', $citizen->getKey()),
+        );
+    }
+
+    /**
+     * Satu nomor dipakai beberapa warga: petugas memilih warga di panel
+     * (ServiceForm) sebelum memilih layanan, jadi kartu ini hanya ringkasan.
+     *
+     * @param  Collection<int, Citizen>  $citizens
+     */
+    protected function shared($citizens, $user, string $phone): ContactContext
+    {
+        return new ContactContext(
+            source: $this->label(),
+            name: __(':count warga', ['count' => $citizens->count()]),
+            caption: __('Nomor dipakai bersama'),
+            captionTone: 'amber',
+            fields: [__('Nomor HP') => $phone],
+            history: Pendaftaran::query()
+                ->with(['service', 'citizen'])
+                ->whereIn('citizen_id', $citizens->modelKeys())
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get()
+                ->map(fn (Pendaftaran $pendaftaran) => new ContactHistoryItem(
+                    title: $pendaftaran->service?->nama ?? __('Pengajuan'),
+                    meta: trim(($pendaftaran->ticket_number ?? '').' · '.($pendaftaran->citizen?->nama).' · '.($pendaftaran->created_at?->translatedFormat('d M Y') ?? ''), ' ·'),
+                    status: str($pendaftaran->status)->title()->value(),
+                    tone: $pendaftaran->status === Pendaftaran::STATUS_SELESAI ? 'teal' : 'amber',
+                    url: route('sidulur.pendaftaran.show', $pendaftaran->getKey()),
+                ))
+                ->all(),
+            panelView: $user->can(SidulurPermissions::PENDAFTARAN_CREATE)
+                ? 'sidulur::partials.chat.service-panel'
+                : null,
+            panelData: ['phone' => $phone],
         );
     }
 
