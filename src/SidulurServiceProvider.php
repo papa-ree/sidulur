@@ -2,6 +2,7 @@
 
 namespace Bale\Sidulur;
 
+use App\Models\User;
 use Bale\Sidulur\Commands\BersihkanSyaratMaster;
 use Bale\Sidulur\Commands\DemoSidulur;
 use Bale\Sidulur\Commands\InstallSidulur;
@@ -9,8 +10,10 @@ use Bale\Sidulur\Commands\MigrateSidulur;
 use Bale\Sidulur\Commands\PublishConfigSidulur;
 use Bale\Sidulur\Commands\PublishMigrationsSidulur;
 use Bale\Sidulur\Commands\SeedSidulur;
+use Bale\Sidulur\Services\OfficerScope;
 use Bale\Sidulur\Vada\SidulurContactContext;
 use Bale\Vada\Services\ContextRegistry;
+use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +28,8 @@ class SidulurServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__.'/../config/sidulur.php', 'sidulur');
 
+        $this->registerOfficerGate();
+
         $this->registerDocumentDisk();
 
         $this->commands([
@@ -36,6 +41,21 @@ class SidulurServiceProvider extends ServiceProvider
             PublishMigrationsSidulur::class,
             SeedSidulur::class,
         ]);
+    }
+
+    /**
+     * Didaftarkan di register() agar callback jalan sebelum Gate::before milik
+     * Spatie; callback before pertama yang mengembalikan nilai yang menang.
+     */
+    protected function registerOfficerGate(): void
+    {
+        $this->app->make(Gate::class)->before(function ($user, string $ability) {
+            if (! str_starts_with($ability, 'sidulur.') || ! $user instanceof User) {
+                return null;
+            }
+
+            return $user->checkPermissionTo($ability) && OfficerScope::grants($ability, $user);
+        });
     }
 
     /**

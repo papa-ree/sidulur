@@ -87,4 +87,31 @@ class SidulurPermissions
         self::SETTING_VIEW,
         self::SETTING_UPDATE,
     ];
+
+    /**
+     * Bendera petugas → permission yang boleh dibuka. Akses petugas adalah
+     * irisan daftar ini dengan permission dari role landlord-nya.
+     */
+    const FLAGS = [
+        'is_pendaftaran' => [
+            self::VIEW,
+            self::CITIZEN_VIEW,
+            self::CITIZEN_CREATE,
+            self::CITIZEN_UPDATE,
+            self::SERVICE_VIEW,
+            self::PENDAFTARAN_VIEW,
+            self::PENDAFTARAN_CREATE,
+        ],
+        'is_bidang' => [
+            self::VIEW,
+            self::CITIZEN_VIEW,
+            self::PELAYANAN_VIEW,
+            self::PELAYANAN_UPDATE,
+        ],
+        'is_lapangan' => [
+            self::VIEW,
+            self::VERLAP_VIEW,
+            self::VERLAP_UPDATE,
+        ],
+    ];
 }

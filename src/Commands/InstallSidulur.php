@@ -81,26 +81,9 @@ class InstallSidulur extends Command
         $adminRole->syncPermissions(SidulurPermissions::ALL);
 
         $roles = [
-            'bale-sidulur-pendaftaran' => [
-                SidulurPermissions::VIEW,
-                SidulurPermissions::CITIZEN_VIEW,
-                SidulurPermissions::CITIZEN_CREATE,
-                SidulurPermissions::CITIZEN_UPDATE,
-                SidulurPermissions::SERVICE_VIEW,
-                SidulurPermissions::PENDAFTARAN_VIEW,
-                SidulurPermissions::PENDAFTARAN_CREATE,
-            ],
-            'bale-sidulur-bidang' => [
-                SidulurPermissions::VIEW,
-                SidulurPermissions::CITIZEN_VIEW,
-                SidulurPermissions::PELAYANAN_VIEW,
-                SidulurPermissions::PELAYANAN_UPDATE,
-            ],
-            'bale-sidulur-lapangan' => [
-                SidulurPermissions::VIEW,
-                SidulurPermissions::VERLAP_VIEW,
-                SidulurPermissions::VERLAP_UPDATE,
-            ],
+            'bale-sidulur-pendaftaran' => SidulurPermissions::FLAGS['is_pendaftaran'],
+            'bale-sidulur-bidang' => SidulurPermissions::FLAGS['is_bidang'],
+            'bale-sidulur-lapangan' => SidulurPermissions::FLAGS['is_lapangan'],
         ];
 
         foreach ($roles as $name => $permissions) {
