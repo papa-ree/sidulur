@@ -91,7 +91,8 @@ class Form extends Component
     public function render()
     {
         return view('sidulur::livewire.pages.officer.form', [
-            'users' => User::query()->orderBy('name')->get(['uuid', 'name', 'email']),
+            // Root sudah melihat semua data, jadi tidak perlu dijadikan petugas.
+            'users' => User::query()->where('role', '!=', 'root')->orderBy('name')->get(['uuid', 'name', 'email']),
             'bidangs' => Bidang::query()->where('is_active', true)->orderBy('nama')->get(),
         ]);
     }
