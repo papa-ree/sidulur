@@ -19,12 +19,18 @@ class SendSidulurWhatsapp implements ShouldQueue
     public function __construct(
         public string $phone,
         public string $message,
+        public ?string $deviceId = null,
     ) {
         $this->afterCommit = true;
     }
 
     public function handle(): void
     {
-        Wara::sendMessage($this->phone, $this->message, config('sidulur.whatsapp.purpose', 'sidulur'));
+        Wara::sendMessage(
+            $this->phone,
+            $this->message,
+            config('sidulur.whatsapp.purpose', 'sidulur'),
+            deviceId: $this->deviceId,
+        );
     }
 }

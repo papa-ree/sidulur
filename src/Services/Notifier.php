@@ -6,6 +6,7 @@ use Bale\Sidulur\Jobs\SendSidulurWhatsapp;
 use Bale\Sidulur\Models\Citizen;
 use Bale\Sidulur\Models\PelayananBidang;
 use Bale\Sidulur\Models\Pendaftaran;
+use Bale\Vada\Models\VadaChannel;
 
 class Notifier
 {
@@ -46,6 +47,12 @@ class Notifier
             return;
         }
 
-        SendSidulurWhatsapp::dispatch($phone, $message);
+        // Job berjalan tanpa konteks tenant, jadi device kanal di-resolve di sini.
+        $deviceId = VadaChannel::query()
+            ->where('bale_id', session('bale_active_uuid'))
+            ->where('is_active', true)
+            ->value('device_id');
+
+        SendSidulurWhatsapp::dispatch($phone, $message, $deviceId);
     }
 }
