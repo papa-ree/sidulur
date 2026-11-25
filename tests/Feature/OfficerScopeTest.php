@@ -43,6 +43,19 @@ it('hanya membuka permission milik bendera yang dicentang', function () {
         ->and(OfficerScope::grants(SidulurPermissions::VERLAP_VIEW, $user))->toBeFalse();
 });
 
+it('menolak akses bidang sampai bidang petugas dipilih', function () {
+    $user = sidulurOfficerUser();
+
+    Officer::query()->create(['user_id' => $user->uuid, 'is_bidang' => true, 'is_active' => true]);
+
+    expect(OfficerScope::grants(SidulurPermissions::PELAYANAN_VIEW, $user))->toBeFalse();
+
+    $officer = Officer::query()->where('user_id', $user->uuid)->firstOrFail();
+    $officer->bidangs()->sync([sidulurBidang()->id]);
+
+    expect(OfficerScope::grants(SidulurPermissions::PELAYANAN_VIEW, $user))->toBeTrue();
+});
+
 it('memotong hasil gate sesuai bendera petugas', function () {
     $user = sidulurOfficerUser();
 

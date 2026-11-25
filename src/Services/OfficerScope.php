@@ -86,10 +86,23 @@ class OfficerScope
             return false;
         }
 
+        $hasBidang = null;
+
         foreach (SidulurPermissions::FLAGS as $flag => $permissions) {
-            if ($officer->{$flag} && in_array($ability, $permissions, true)) {
-                return true;
+            if (! $officer->{$flag} || ! in_array($ability, $permissions, true)) {
+                continue;
             }
+
+            // Petugas bidang/lapangan tanpa bidang belum punya penugasan.
+            if ($flag !== 'is_pendaftaran') {
+                $hasBidang ??= $officer->bidangs()->exists();
+
+                if (! $hasBidang) {
+                    continue;
+                }
+            }
+
+            return true;
         }
 
         return false;
