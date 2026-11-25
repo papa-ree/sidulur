@@ -21,6 +21,8 @@ class Show extends Component
         abort_unless(auth()->user()->can(SidulurPermissions::CITIZEN_VIEW), 403);
 
         $this->citizen = $citizen->load(['familyCard.citizens', 'documents', 'pendaftarans.service']);
+
+        activity('sidulur')->performedOn($this->citizen)->event('dilihat')->log('Detail warga dibuka');
     }
 
     public function render()

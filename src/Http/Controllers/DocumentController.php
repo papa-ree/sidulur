@@ -34,6 +34,8 @@ class DocumentController
         $user = $request->user();
         abort_unless(collect($permissions)->contains(fn (string $permission) => $user?->can($permission)), 403);
 
+        activity('sidulur')->performedOn($document)->event('diakses')->log('Dokumen diakses');
+
         return $documents->response($document);
     }
 }

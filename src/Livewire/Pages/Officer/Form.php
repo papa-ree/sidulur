@@ -82,7 +82,14 @@ class Form extends Component
             ]
         );
 
-        $officer->bidangs()->sync($data['bidang_ids']);
+        $changes = $officer->bidangs()->sync($data['bidang_ids']);
+
+        // Pivot tidak memicu model event, jadi perubahannya dicatat manual.
+        if ($changes['attached'] || $changes['detached']) {
+            activity('sidulur')->performedOn($officer)->event('bidang')
+                ->withProperties(['attached' => $changes['attached'], 'detached' => $changes['detached']])
+                ->log('Bidang petugas diperbarui');
+        }
 
         $this->dispatch('toast', message: 'Petugas disimpan.', type: 'success');
         $this->redirect(route('sidulur.officer.index'), navigate: true);
