@@ -67,6 +67,8 @@ SIDULUR_WA_PURPOSE=sidulur
 
 Di produksi berkas disimpan di bucket MinIO privat (`SIDULUR_DOCUMENT_BUCKET`) memakai kredensial `SIDULUR_ACCESS_KEY_ID`/`SIDULUR_SECRET_ACCESS_KEY`; region, endpoint, dan path-style mengikuti `AWS_DEFAULT_REGION`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`. Di lingkungan lain disk `sidulur` menunjuk `storage/app/sidulur`. Berkas disajikan lewat controller ber-auth, jadi tidak perlu `storage:link`. Aplikasi bale-front membaca bucket yang sama dan menyajikannya lewat signed route.
 
+User MinIO untuk admin butuh `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, dan `s3:ListBucket`. MinIO tidak mendukung ACL objek, jadi `s3:PutObjectAcl` bukan action yang valid.
+
 Berikan role yang sesuai ke pengguna:
 
 | Role | Akses |

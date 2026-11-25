@@ -8,6 +8,7 @@ use Bale\Sidulur\Models\FamilyCard;
 use Bale\Sidulur\Services\CitizenRegistrar;
 use Bale\Sidulur\Services\DocumentService;
 use Bale\Sidulur\Support\BlindIndex;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -175,6 +176,17 @@ it('menyiapkan pratinjau dokumen sesuai jenis berkas', function () {
         ->and($documents->preview($image)['url'])->toContain($image->getKey())
         ->and($documents->preview($pdf)['is_image'])->toBeFalse()
         ->and($documents->preview($pdf)['name'])->toBe('kartu-keluarga.pdf');
+});
+
+it('gagal keras bila disk menolak menulis berkas', function () {
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+
+    $disk = Mockery::mock(Filesystem::class);
+    $disk->shouldReceive('put')->once()->andReturnFalse();
+    Storage::shouldReceive('disk')->with('sidulur')->andReturn($disk);
+
+    expect(fn () => app(DocumentService::class)->upload($citizen, UploadedFile::fake()->image('ktp.jpg'), 'ktp'))
+        ->toThrow(RuntimeException::class, 'Gagal menyimpan berkas ke disk sidulur.');
 });
 
 it('menyajikan dokumen privat dan menolak berkas yang hilang', function () {

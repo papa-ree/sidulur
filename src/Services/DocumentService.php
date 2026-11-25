@@ -26,10 +26,10 @@ class DocumentService
         if ($webp) {
             $path = $directory.'/'.Str::uuid().'.webp';
 
-            Storage::disk($disk)->put($path, (string) $webp);
+            $stored = Storage::disk($disk)->put($path, (string) $webp);
 
             $mime = 'image/webp';
-            $size = Storage::disk($disk)->size($path);
+            $size = strlen((string) $webp);
             $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME).'.webp';
         } else {
             $path = $file->store($directory, $disk);
@@ -37,6 +37,14 @@ class DocumentService
             $mime = $file->getClientMimeType();
             $size = $file->getSize();
             $originalName = $file->getClientOriginalName();
+
+            $stored = (bool) $path;
+        }
+
+        // Disk memakai throw=false agar baca berkas hilang jadi 404, jadi
+        // kegagalan tulis (mis. policy MinIO kurang) harus diperiksa di sini.
+        if (! $stored) {
+            throw new \RuntimeException("Gagal menyimpan berkas ke disk {$disk}.");
         }
 
         return $owner->documents()->create([
