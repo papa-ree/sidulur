@@ -1,6 +1,5 @@
 <?php
 
-use Bale\Core\Support\Cdn;
 use Bale\Sidulur\Livewire\Pages\Citizen\Form as CitizenForm;
 use Bale\Sidulur\Livewire\Pages\Pendaftaran\Create as PendaftaranCreate;
 use Bale\Sidulur\Models\Citizen;
@@ -12,6 +11,7 @@ use Bale\Sidulur\Support\BlindIndex;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 require_once __DIR__.'/../helpers.php';
 
@@ -175,13 +175,30 @@ it('menyiapkan pratinjau dokumen sesuai jenis berkas', function () {
         ->and($documents->preview($image)['url'])->toContain($image->getKey())
         ->and($documents->preview($pdf)['is_image'])->toBeFalse()
         ->and($documents->preview($pdf)['name'])->toBe('kartu-keluarga.pdf');
+});
 
-    // Production: pratinjau lewat CDN core, bukan route media.
-    $this->app['env'] = 'production';
-    config(['core.cdn.enabled' => true, 'core.cdn.base_url' => 'https://cdn.test', 'core.cdn.prefix' => 'bale']);
-    Cdn::forgetOrganizationSlug();
+it('menyajikan dokumen privat dan menolak berkas yang hilang', function () {
+    Storage::fake('sidulur');
 
-    expect($documents->preview($image)['url'])->toBe('https://cdn.test/bale/'.$image->path);
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+    $documents = app(DocumentService::class);
+
+    $image = $documents->upload($citizen, UploadedFile::fake()->image('ktp.jpg'), 'ktp');
+    $pdf = $documents->upload($citizen, UploadedFile::fake()->create('surat.pdf', 100, 'application/pdf'), 'hasil');
+
+    $imageResponse = $documents->response($image);
+    $pdfResponse = $documents->response($pdf);
+
+    expect($imageResponse->getStatusCode())->toBe(200)
+        ->and($imageResponse->headers->get('Content-Type'))->toBe('image/webp')
+        ->and($imageResponse->headers->get('Content-Disposition'))->toContain('inline')
+        ->and($pdfResponse->headers->get('Content-Disposition'))->toContain('attachment')
+        ->and($pdfResponse->headers->get('X-Content-Type-Options'))->toBe('nosniff');
+
+    Storage::disk('sidulur')->delete($pdf->path);
+
+    expect(fn () => $documents->response($pdf))
+        ->toThrow(NotFoundHttpException::class);
 });
 
 it('membolehkan beberapa warga berbagi satu nomor HP', function () {

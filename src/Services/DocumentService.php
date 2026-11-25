@@ -3,12 +3,12 @@
 namespace Bale\Sidulur\Services;
 
 use Bale\Core\Services\ImageService;
-use Bale\Core\Support\Cdn;
 use Bale\Sidulur\Models\Document;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DocumentService
@@ -76,8 +76,8 @@ class DocumentService
     /**
      * Data pratinjau untuk view; null bila belum ada dokumen.
      *
-     * Di production berkas disajikan lewat CDN core; di lokal (dan saat CDN
-     * mati) tetap lewat route media yang ber-auth.
+     * Bucket dokumen bersifat privat, jadi selalu lewat route media yang
+     * memeriksa auth dan permission; tidak ada URL CDN publik.
      *
      * @return array{name: string, url: string, is_image: bool}|null
      */
@@ -89,9 +89,7 @@ class DocumentService
 
         return [
             'name' => $document->original_name,
-            'url' => app()->isProduction() && Cdn::enabled()
-                ? Cdn::url($document->path)
-                : route('sidulur.media', $document->getKey()),
+            'url' => route('sidulur.media', $document->getKey()),
             'is_image' => str_starts_with((string) $document->mime, 'image/'),
         ];
     }
@@ -99,10 +97,24 @@ class DocumentService
     public function response(Document $document): StreamedResponse
     {
         $disk = Storage::disk($document->disk);
-        abort_unless($disk->exists($document->path), 404);
 
-        return $disk->response($document->path, $document->original_name, [
-            'Content-Type' => $document->mime ?: 'application/octet-stream',
+        // Satu GET saja: exists() + response() memicu HEAD tambahan yang bisa
+        // gagal di MinIO walau GET-nya sehat.
+        $stream = $disk->readStream($document->path);
+        abort_unless(is_resource($stream), 404);
+
+        $mime = (string) ($document->mime ?: 'application/octet-stream');
+
+        return response()->stream(fn () => fpassthru($stream), 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                str_starts_with($mime, 'image/') ? 'inline' : 'attachment',
+                (string) $document->original_name,
+                Str::ascii((string) $document->original_name),
+            ),
+            'X-Content-Type-Options' => 'nosniff',
+            // Path dokumen unik per unggahan, isinya tidak pernah berubah.
+            'Cache-Control' => 'private, max-age=604800, immutable',
         ]);
     }
 }

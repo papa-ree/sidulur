@@ -62,6 +62,9 @@ class SidulurServiceProvider extends ServiceProvider
      * Disk dokumen Sidulur belum tentu ada di config/filesystems aplikasi.
      * Tanpa ini unggah KTP/KK gagal dengan "Disk [sidulur] does not have a
      * configured driver".
+     *
+     * Produksi memakai bucket MinIO terpisah (objek privat). Kredensial khusus
+     * Sidulur; region, endpoint, dan path-style mengikuti disk `s3`.
      */
     protected function registerDocumentDisk(): void
     {
@@ -71,7 +74,17 @@ class SidulurServiceProvider extends ServiceProvider
             return;
         }
 
-        config(["filesystems.disks.{$disk}" => [
+        config(["filesystems.disks.{$disk}" => app()->isProduction() ? [
+            'driver' => 's3',
+            'key' => config('sidulur.storage.key'),
+            'secret' => config('sidulur.storage.secret'),
+            'region' => config('filesystems.disks.s3.region'),
+            'bucket' => config('sidulur.storage.bucket'),
+            'endpoint' => config('filesystems.disks.s3.endpoint'),
+            'use_path_style_endpoint' => config('filesystems.disks.s3.use_path_style_endpoint'),
+            'visibility' => 'private',
+            'throw' => false,
+        ] : [
             'driver' => 'local',
             'root' => storage_path('app/'.$disk),
             'throw' => false,

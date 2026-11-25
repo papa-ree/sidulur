@@ -20,6 +20,9 @@ return [
 
     'storage' => [
         'disk' => env('SIDULUR_DOCUMENT_DISK', 'sidulur'),
+        'bucket' => env('SIDULUR_DOCUMENT_BUCKET'),
+        'key' => env('SIDULUR_ACCESS_KEY_ID'),
+        'secret' => env('SIDULUR_SECRET_ACCESS_KEY'),
     ],
 
     'whatsapp' => [

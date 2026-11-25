@@ -11,7 +11,7 @@ Semua tabel Sidulur berada di database tenant. Paket ini bergantung pada `bale/c
 - Form builder: field isian, persyaratan tambahan, dan isian verifikasi. Field bertipe teks, number, date, select, textarea, dan file.
 - Pendaftaran tiga langkah: cari warga, pilih layanan, isi formulir.
 - Pengajuan diteruskan ke bidang atau diselesaikan di meja pendaftaran. Bidang dapat meminta verifikasi lapangan.
-- Dokumen warga dan berkas persyaratan disajikan lewat route bertanda tangan dengan masa berlaku.
+- Dokumen warga dan berkas persyaratan disajikan lewat route ber-auth dengan pemeriksaan permission.
 - Notifikasi WhatsApp lewat `bale/wara`, dikirim sebagai job antrean.
 - Panel layanan di chat Vada: petugas membuat pendaftaran dari percakapan dan memakai media chat sebagai berkas persyaratan.
 - Role, permission, dan menu sidebar didaftarkan otomatis.
@@ -56,13 +56,16 @@ SIDULUR_INDEX_KEY=
 SIDULUR_TICKET_EXPIRY_DAYS=30
 SIDULUR_DOCUMENT_LINK_DAYS=30
 SIDULUR_DOCUMENT_DISK=sidulur
+SIDULUR_DOCUMENT_BUCKET=
+SIDULUR_ACCESS_KEY_ID=
+SIDULUR_SECRET_ACCESS_KEY=
 SIDULUR_WHATSAPP=
 SIDULUR_WA_PURPOSE=sidulur
 ```
 
 `SIDULUR_INDEX_KEY` harus sama dengan kunci yang dipakai aplikasi bale-front. Bila berbeda, pencarian warga tidak menemukan data yang sudah ada.
 
-Berkas disimpan di disk `sidulur` (`storage/app/sidulur`) dan disajikan lewat controller dengan URL bertanda tangan, jadi tidak perlu `storage:link`.
+Di produksi berkas disimpan di bucket MinIO privat (`SIDULUR_DOCUMENT_BUCKET`) memakai kredensial `SIDULUR_ACCESS_KEY_ID`/`SIDULUR_SECRET_ACCESS_KEY`; region, endpoint, dan path-style mengikuti `AWS_DEFAULT_REGION`, `AWS_ENDPOINT`, `AWS_USE_PATH_STYLE_ENDPOINT`. Di lingkungan lain disk `sidulur` menunjuk `storage/app/sidulur`. Berkas disajikan lewat controller ber-auth, jadi tidak perlu `storage:link`. Aplikasi bale-front membaca bucket yang sama dan menyajikannya lewat signed route.
 
 Berikan role yang sesuai ke pengguna:
 
