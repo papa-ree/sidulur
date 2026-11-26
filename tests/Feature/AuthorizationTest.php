@@ -146,7 +146,7 @@ it('menolak seluruh aksi pelayanan bidang tanpa izin', function () {
 
     $actions = [
         fn () => $component->schedule(app(SubmissionFlow::class)),
-        fn () => $component->finish(app(SubmissionFlow::class)),
+        fn () => $component->finish(app(SubmissionFlow::class), app(DocumentService::class)),
         fn () => $component->uploadHasil(app(DocumentService::class)),
     ];
 

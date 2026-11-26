@@ -340,7 +340,7 @@ it('memblokir penyelesaian pelayanan saat identitas warga belum lengkap', functi
     $component = new PelayananShow;
     $component->pelayanan = $pelayanan->fresh();
 
-    expect(fn () => $component->finish(sidulurFlow()))
+    expect(fn () => $component->finish(sidulurFlow(), app(DocumentService::class)))
         ->toThrow(ValidationException::class);
 });
 
@@ -358,11 +358,51 @@ it('mewajibkan centang identitas sebelum pelayanan diselesaikan', function () {
     $component->pelayanan = $pelayanan->fresh();
 
     // Berkas lengkap tetapi petugas belum mencentang pemeriksaan.
-    expect(fn () => $component->finish(sidulurFlow()))
+    expect(fn () => $component->finish(sidulurFlow(), app(DocumentService::class)))
         ->toThrow(ValidationException::class);
 
     $component->requirements = ['identitas' => true];
-    $component->finish(sidulurFlow());
+    $component->finish(sidulurFlow(), app(DocumentService::class));
 
     expect($pelayanan->refresh()->status)->toBe(PelayananBidang::STATUS_SELESAI);
+});
+
+it('menyimpan berkas field respon bidang sebagai dokumen dan nama berkasnya', function () {
+    Storage::fake('sidulur');
+
+    $citizen = sidulurCitizen(sidulurFamilyCard());
+    sidulurBerkas($citizen);
+
+    $service = sidulurService(sidulurBidang());
+    sidulurForm($service, [
+        'persyaratan' => [],
+        'fields' => [
+            ['key' => 'keputusan', 'label' => 'Keputusan', 'type' => 'text'],
+            ['key' => 'lampiran', 'label' => 'Lampiran', 'type' => 'file'],
+        ],
+    ]);
+
+    $pelayanan = sidulurFlow()->forward(
+        sidulurFlow()->register($citizen, $service, ['keputusan' => 'Disetujui'])
+    );
+
+    sidulurPelayananUser();
+
+    $component = new PelayananShow;
+    $component->pelayanan = $pelayanan->fresh();
+    $component->requirements = ['identitas' => true];
+    $component->formData = [
+        'keputusan' => 'Disetujui',
+        'lampiran' => UploadedFile::fake()->create('lampiran.pdf', 100, 'application/pdf'),
+    ];
+
+    $component->finish(sidulurFlow(), app(DocumentService::class));
+
+    $pelayanan->refresh();
+    $document = $pelayanan->pendaftaran->documents()->where('kind', 'respon')->first();
+
+    expect($document?->original_name)->toBe('lampiran.pdf')
+        ->and($document?->documentable_type)->toBe('Bale\Sidulur\Models\Pendaftaran')
+        ->and($pelayanan->form_data['lampiran'])->toBe('lampiran.pdf')
+        ->and($pelayanan->status)->toBe(PelayananBidang::STATUS_SELESAI);
 });

@@ -9,6 +9,7 @@ use Bale\Sidulur\Services\OfficerScope;
 use Bale\Sidulur\Services\SubmissionFlow;
 use Bale\Sidulur\SidulurPermissions;
 use Bale\Sidulur\Support\FormSchema;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -74,7 +75,7 @@ class Show extends Component
         $this->dispatch('toast', message: 'Jadwal verifikasi lapangan disimpan.', type: 'success');
     }
 
-    public function finish(SubmissionFlow $flow): void
+    public function finish(SubmissionFlow $flow, DocumentService $documents): void
     {
         abort_unless(auth()->user()->can(SidulurPermissions::PELAYANAN_UPDATE), 403);
 
@@ -90,21 +91,48 @@ class Show extends Component
         }
 
         $requirements = $this->requirementContext();
+        $fields = $this->pelayanan->form_snapshot['fields'] ?? [];
+        $fileRules = [];
+
+        // Field berkas butuh aturan tipe/ukuran; FormSchema hanya tahu required.
+        foreach ($fields as $field) {
+            if (($field['type'] ?? 'text') === 'file' && filled($field['key'] ?? null)) {
+                $fileRules['formData.'.$field['key']] = [
+                    ($field['required'] ?? false) ? 'required' : 'nullable',
+                    'file',
+                    'mimes:jpg,jpeg,png,webp,pdf',
+                    'max:4096',
+                ];
+            }
+        }
 
         $this->validate(
             array_merge(
                 ['formData' => ['array']],
-                FormSchema::fieldRules($this->pelayanan->form_snapshot['fields'] ?? [], 'formData'),
+                FormSchema::fieldRules($fields, 'formData'),
+                $fileRules,
                 FormSchema::requirementRules($requirements),
                 FormSchema::identityRule(),
             ),
             [],
             array_merge(
-                FormSchema::fieldLabels($this->pelayanan->form_snapshot['fields'] ?? [], 'formData'),
+                FormSchema::fieldLabels($fields, 'formData'),
                 FormSchema::requirementLabels($requirements),
                 ['requirements.'.FormSchema::IDENTITY_KEY => FormSchema::identityTitle()],
             )
         );
+
+        foreach ($fields as $field) {
+            $key = $field['key'] ?? null;
+
+            if (($field['type'] ?? 'text') !== 'file' || ! ($this->formData[$key] ?? null) instanceof UploadedFile) {
+                continue;
+            }
+
+            $this->formData[$key] = $documents
+                ->upload($this->pelayanan->pendaftaran, $this->formData[$key], 'respon')
+                ->original_name;
+        }
 
         $this->formData['_diperiksa'] = array_filter($this->requirements);
 
