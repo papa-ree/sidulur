@@ -17,7 +17,7 @@
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ __('Cari Warga') }}</h2>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('Masukkan NIK, nomor KK, atau nomor HP.') }}</p>
                     <form wire:submit="search" class="mt-3 flex flex-col gap-2 sm:flex-row">
-                        <x-core::input wire:model="identity" placeholder="{{ __('NIK / KK / HP') }}" class="flex-1" />
+                        <x-core::input wire:model="identity" x-mask="9999 9999 9999 9999" inputmode="numeric" placeholder="{{ __('NIK / KK / HP') }}" class="flex-1" />
                         <x-core::button type="submit" label="{{ __('Cari') }}" />
                     </form>
                     @error('identity') <p class="mt-1 text-sm text-rose-600 dark:text-rose-400">{{ $message }}</p> @enderror
